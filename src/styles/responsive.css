@@ -1,0 +1,216 @@
+/* --- responsive ------------------------------------------------------------- */
+
+/* --- tablette ---------------------------------------------------------------
+   L'iPad tombe entre les deux mises en page : assez large pour garder la
+   grille, trop étroit pour trois colonnes de sacs, et sans survol. On y règle
+   les trois choses qui s'en ressentent — la densité de la grille, la fiche
+   produit en paysage, et tout ce que le survol seul révélait.
+   ------------------------------------------------------------------------ */
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .grid--3,
+  .grid--4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid {
+    column-gap: clamp(14px, 2.4vw, 26px);
+    row-gap: clamp(40px, 6vw, 64px);
+  }
+
+  .viewer__panel {
+    width: min(520px, 100%);
+  }
+
+  .drawer__panel {
+    width: min(400px, 86vw);
+  }
+
+  .lookbook__duo {
+    column-gap: clamp(12px, 2vw, 20px);
+  }
+
+  .look--b {
+    margin-top: clamp(50px, 10vh, 120px);
+  }
+}
+
+/* Sans survol, rien ne doit se cacher derrière un survol : le bouton d'ajout
+   reste posé sur la carte, et la seconde prise de vue ne sert plus à rien. */
+/* En paysage seulement — en portrait, la fiche s'empile (règle des 900 px), et
+   il ne faut surtout pas la redresser après coup. */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .pdp {
+    grid-template-columns: minmax(300px, 46%) 1fr;
+  }
+}
+
+@media (hover: none) {
+  .card__add {
+    opacity: 1;
+    transform: none;
+  }
+
+  .card__img--alt {
+    display: none;
+  }
+
+  .card__media:hover img {
+    transform: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .grid--4 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .hero__title {
+    font-size: clamp(40px, 6.4vw, 74px);
+  }
+}
+
+@media (max-width: 900px) {
+  .header__nav--left,
+  .hide-sm {
+    display: none;
+  }
+
+  .burger {
+    display: flex;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding-right: 0;
+  }
+
+  .hero__text {
+    padding: clamp(40px, 9vw, 72px) var(--gutter) clamp(36px, 8vw, 60px);
+  }
+
+  .hero__media {
+    width: auto;
+    max-height: none;
+    margin: 0 var(--gutter);
+  }
+
+  .editorial {
+    grid-template-columns: 1fr;
+  }
+
+  .manifesto__meta {
+    flex-wrap: wrap;
+  }
+
+  .footer__grid,
+  .partners__list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .partners__item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .partners__item:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid--4,
+  .grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid {
+    row-gap: 40px;
+    column-gap: 12px;
+  }
+
+  /* Pas de survol sur un écran tactile : le bouton reste visible. */
+  .card__add {
+    opacity: 1;
+    transform: none;
+    padding: 11px;
+    font-size: 10px;
+  }
+
+  .card__dot {
+    width: 16px;
+    height: 16px;
+  }
+
+  .section__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .lookbook__duo {
+    grid-template-columns: 1fr;
+    row-gap: clamp(48px, 9vw, 72px);
+  }
+
+  .look--a,
+  .look--b {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .look--b {
+    margin-top: 0;
+  }
+
+  .lookbook__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .intro__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .intro__meta {
+    margin-bottom: 0;
+  }
+
+  /* Les vignettes de déclinaison passent sous le visuel plutôt que dessus. */
+  /* Les vignettes de coloris restent posées sur le visuel : trois pastilles
+     de 38 px tiennent dans la largeur, même sur un petit téléphone. */
+  .pdp__nav {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .pdp__dot {
+    width: 38px;
+    height: 38px;
+  }
+
+  .opt {
+    grid-template-columns: 76px 1fr;
+  }
+
+  .drawer__panel {
+    width: 100%;
+  }
+
+  .footer__bottom {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .card__info {
+    grid-template-columns: 1fr;
+  }
+
+  .card__price {
+    text-align: left;
+  }
+}

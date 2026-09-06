@@ -1,0 +1,245 @@
+/* --- le procédé ------------------------------------------------------------
+   Une paillasse : papier quadrillé, planches au trait, relevés chiffrés. Tout
+   y est en encre sur papier, sans un aplat — c'est le dessin qui parle.
+   ------------------------------------------------------------------------ */
+
+.lab {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--paper);
+  animation: labIn 0.5s var(--ease);
+}
+
+@keyframes labIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* Le quadrillage de la feuille : deux pas, le fin et le fort. */
+.lab__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(var(--ink-rgb) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--ink-rgb) / 0.05) 1px, transparent 1px),
+    linear-gradient(rgb(var(--ink-rgb) / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--ink-rgb) / 0.03) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  mask-image: radial-gradient(120% 90% at 50% 40%, #000 30%, transparent 100%);
+}
+
+.lab__top,
+.lab__foot {
+  position: relative;
+  padding: 20px var(--gutter);
+}
+
+.lab__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lab__body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 84px);
+  padding: clamp(24px, 5vh, 64px) var(--gutter);
+  min-height: 0;
+}
+
+/* --- la planche ------------------------------------------------------------ */
+
+.lab__plate {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  min-width: 0;
+}
+
+.lab__plate svg {
+  width: 100%;
+  height: auto;
+  max-height: min(52svh, 460px);
+  overflow: visible;
+}
+
+/* Un seul système de traits : plein pour la matière, pointillé pour ce qui
+   guide, disque plein pour un point remarquable. */
+.lab__plate .k,
+.lab__plate .d,
+.lab__plate .p {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Les traits restent dans les unités du dessin, sans `non-scaling-stroke` :
+   celui-ci fait calculer les tirets en pixels d'écran alors que `pathLength`
+   les normalise dans l'espace du tracé. Les deux ensemble, le déroulé se
+   décale — la silhouette ne se refermait jamais. */
+.lab__plate .d {
+  stroke-width: 0.36;
+  stroke: rgb(var(--ink-rgb) / 0.45);
+  stroke-dasharray: 1.1 1.5;
+}
+
+.lab__plate .p {
+  fill: var(--ink);
+  stroke: none;
+}
+
+/* La bille qui suit la lame ou l'aiguille : posée hors champ tant qu'elle n'a
+   pas reçu sa première position. */
+.lab__plate .run {
+  fill: var(--ink);
+}
+
+.lab__note {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- le texte -------------------------------------------------------------- */
+
+.lab__text {
+  min-width: 0;
+}
+
+.lab__index {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(38px, 7vw, 74px);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab__index i {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.lab__hour {
+  margin: 18px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab__title {
+  margin: 6px 0 0;
+  font-size: clamp(24px, 3.4vw, 40px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.lab__line {
+  max-width: 42ch;
+  margin: 16px 0 0;
+  font-size: clamp(14px, 1.3vw, 16px);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* --- la frise -------------------------------------------------------------- */
+
+.lab__rail {
+  position: relative;
+  height: 1px;
+  background: var(--line);
+}
+
+.lab__rail-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--ink);
+}
+
+.lab__stop {
+  position: absolute;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  display: grid;
+  place-items: center;
+}
+
+.lab__stop span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background 0.4s var(--ease), box-shadow 0.4s var(--ease), transform 0.4s var(--ease);
+}
+
+.lab__stop.is-on span {
+  background: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.lab__stop:hover span {
+  transform: scale(1.4);
+}
+
+.lab__scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 14px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .lab__body {
+    grid-template-columns: 1fr;
+    align-content: center;
+    gap: 28px;
+  }
+
+  .lab__plate svg {
+    max-height: 32svh;
+  }
+
+  .lab__scale span:nth-child(2) {
+    display: none;
+  }
+}

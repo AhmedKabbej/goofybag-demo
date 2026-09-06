@@ -1,0 +1,259 @@
+/* --- l'ouverture -----------------------------------------------------------
+   La première chose que l'on voit : une pièce, en grand, sur le papier. Le nom
+   de la maison passe derrière elle — assez pâle pour ne pas lui disputer la
+   place, assez large pour sortir du cadre. Tout le reste est en petit, aux
+   quatre coins, comme les mentions d'une planche de campagne.
+   ------------------------------------------------------------------------ */
+
+.opening {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: calc(100svh - var(--header-h));
+  padding: clamp(56px, 9vh, 110px) var(--gutter) clamp(72px, 11vh, 130px);
+  overflow: hidden;
+}
+
+/* Le mot, en fond : une seule ligne qui dérive lentement, reprise du même
+   mécanisme que les bandeaux du site — vingt-deux pixels par seconde, de quoi
+   sentir que la page respire sans jamais réclamer le regard. */
+.opening__band {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-54%);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.opening__word {
+  padding-right: 0.28em;
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 125;
+  font-size: clamp(96px, 21vw, 340px);
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgb(var(--ink-rgb) / 0.055);
+}
+
+/* La même grille que le bandeau du haut, et pour la même raison : réparti au
+   `space-between`, le mot du milieu se cale sur la largeur de ses voisins et
+   dérive du côté du plus court — il tombait à droite de l'axe du logo. Trois
+   colonnes dont les deux extrêmes sont égales, et l'axe redevient celui de la
+   page, celui du logo. */
+.opening__credits {
+  position: absolute;
+  top: clamp(18px, 3.5vh, 34px);
+  left: var(--gutter);
+  right: var(--gutter);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Les colonnes sont assignées, pas déduites de l'ordre : le mot du milieu
+   s'efface sur écran étroit, et « Cinq pièces » viendrait sinon s'y loger. */
+.opening__credits > :nth-child(1) {
+  grid-column: 1;
+}
+
+.opening__credits > :nth-child(2) {
+  grid-column: 2;
+  text-align: center;
+}
+
+.opening__credits > :nth-child(3) {
+  grid-column: 3;
+  text-align: right;
+}
+
+/* --- la pièce -------------------------------------------------------------- */
+
+.opening__stage {
+  position: relative;
+  width: min(58vw, 620px);
+  height: min(60svh, 620px);
+  cursor: pointer;
+}
+
+/* Pas d'ombre au sol ici. Les cinq visuels de l'ouverture portent déjà la
+   leur, comme ceux du hero et de la grille : en ajouter une seconde en CSS
+   les dédoublait. La dérive du plateau les emporte toutes les deux de toute
+   façon — l'ombre peinte suit donc le sac aussi bien qu'un dégradé. */
+
+.opening__shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.opening__shot.is-on {
+  opacity: 1;
+}
+
+/* --- les mentions du bas ---------------------------------------------------- */
+
+.opening__foot {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(22px, 4vh, 44px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.opening__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 108;
+  font-size: clamp(20px, 2.6vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.opening__meta {
+  display: flex;
+  gap: 14px;
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.opening__meta span + span {
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* La frise des cinq : un trait par pièce, celui de la pièce montrée est plein. */
+.opening__rail {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+.opening__rail span {
+  width: clamp(22px, 3vw, 40px);
+  height: 1px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.5s var(--ease), transform 0.5s var(--ease);
+}
+
+.opening__rail span:hover {
+  background: var(--muted);
+  transform: scaleY(2);
+}
+
+.opening__rail span.is-on {
+  background: var(--ink);
+  transform: scaleY(2);
+}
+
+/* --- l'appel à descendre ---------------------------------------------------- */
+
+.opening__scroll {
+  position: absolute;
+  bottom: clamp(22px, 4vh, 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 0.4s var(--ease);
+}
+
+.opening__scroll:hover {
+  color: var(--ink);
+}
+
+/* Le filet qui descend tout seul, et s'efface en bas de course. */
+.opening__scroll span {
+  position: relative;
+  width: 1px;
+  height: 34px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.opening__scroll span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform-origin: top center;
+  animation: openingDrop 2.4s var(--ease) infinite;
+}
+
+@keyframes openingDrop {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top center;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top center;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom center;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom center;
+  }
+}
+
+@media (max-width: 900px) {
+  .opening__stage {
+    width: min(84vw, 460px);
+    height: min(46svh, 460px);
+  }
+
+  .opening__foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .opening__scroll {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opening__scroll span::after {
+    animation: none;
+    transform: scaleY(1);
+  }
+}

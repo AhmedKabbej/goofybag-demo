@@ -1,0 +1,31 @@
+/* ==========================================================================
+   GoofyBag — système de design
+   Noir & blanc. Inter Tight pour l'interface (petit, discret, tabulaire),
+   Archivo étendu 800 pour les rares titres épais.
+   ========================================================================== */
+
+/* L'ordre compte : le socle d'abord, les composants ensuite, les points de
+   rupture en dernier — c'est lui, et non la spécificité, qui règle les
+   conflits. Chaque fichier tient dans un écran ou deux. */
+
+@import './tokens.css';
+@import './base.css';
+@import './primitives.css';
+@import './header.css';
+@import './intro.css';
+@import './opening.css';
+@import './home.css';
+@import './catalogue.css';
+@import './editorial.css';
+@import './lab.css';
+@import './page.css';
+@import './ship.css';
+@import './care.css';
+@import './contact.css';
+@import './product.css';
+@import './viewer.css';
+@import './demo.css';
+@import './cart.css';
+@import './pay.css';
+@import './cursor.css';
+@import './responsive.css';

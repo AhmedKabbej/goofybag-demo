@@ -1,0 +1,81 @@
+/* --- intro d'ouverture --------------------------------------------------- */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 24px;
+  padding: var(--gutter);
+  background: var(--paper);
+}
+
+.intro__inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.intro__mark {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(42px, 9vw, 148px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.intro__meta {
+  display: flex;
+  gap: 22px;
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.intro__load {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.intro__rule {
+  flex: 1;
+  height: clamp(3px, 0.35vw, 5px);
+  background: var(--line);
+}
+
+.intro__count {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.intro__rule span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* Rideau de transition : un aplat qui balaie l'écran entre deux vues. */
+.curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: none;
+  background: var(--paper);
+  pointer-events: none;
+}

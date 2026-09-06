@@ -1,0 +1,75 @@
+/* --- primitives typographiques --------------------------------------- */
+
+.label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Le seul geste typographique fort du site : gros, étendu, très gras.
+   À n'employer que quelques fois par page. */
+.display {
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  text-transform: uppercase;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.link-arrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-bottom: 5px;
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1px;
+  transition: background-size 0.5s var(--ease);
+}
+
+.link-arrow:hover {
+  background-size: 0 1px;
+  background-position: 100% 100%;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 17px 38px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  transition: background 0.4s var(--ease), color 0.4s var(--ease);
+}
+
+.btn:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.linklike {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hide-sm {
+  display: inline;
+}

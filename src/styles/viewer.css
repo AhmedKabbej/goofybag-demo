@@ -1,0 +1,205 @@
+/* --- aperçu 3D ------------------------------------------------------------
+   Une fenêtre posée sur la fiche, jamais plein écran. Les cinq prises de vue
+   sont empilées : on ne fait qu'allumer celle que désigne la souris.
+   ------------------------------------------------------------------------ */
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gutter);
+}
+
+.viewer__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+}
+
+.viewer__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(560px, 100%);
+  padding: 18px;
+  background: var(--paper);
+}
+
+.viewer__top,
+.viewer__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.viewer__top .label {
+  margin: 0;
+}
+
+.viewer__stage {
+  position: relative;
+  height: min(56svh, 500px);
+  background: var(--paper-2);
+  overflow: hidden;
+  cursor: ew-resize;
+  /* Le doigt tourne le sac : le navigateur ne doit pas lui prendre le geste
+     pour faire défiler ou zoomer. Sans cela il l'emporte au bout de quelques
+     pixels, annule le pointeur en cours de route, et la pièce se fige. */
+  touch-action: none;
+}
+
+.viewer__stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s var(--ease);
+}
+
+.viewer__stage canvas.is-ready {
+  opacity: 1;
+}
+
+/* Deux indications, une seule montrée : c'est le type de pointeur qui tranche,
+   pas la largeur de l'écran — une tablette large se manœuvre au doigt. */
+.viewer__hint--coarse {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .viewer__hint--fine {
+    display: none;
+  }
+
+  .viewer__hint--coarse {
+    display: inline;
+  }
+}
+
+.viewer__wait {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- la course de lumière -------------------------------------------------
+   Un seul réglage, posé le long du visuel : on le fait monter pour ouvrir la
+   lumière, les reflets et l'éclat des bords, descendre pour tout apaiser.
+   ------------------------------------------------------------------------ */
+
+.lume {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px;
+  background: rgb(var(--paper-rgb) / 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  user-select: none;
+  touch-action: none;
+}
+
+.lume__cap,
+.lume__val {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lume__val {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.lume__cap {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.lume__track {
+  position: relative;
+  width: 3px;
+  height: min(26svh, 168px);
+  background: var(--line);
+  cursor: ns-resize;
+}
+
+.lume__track:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 6px;
+}
+
+.lume__fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 50%;
+  background: var(--ink);
+}
+
+.lume__knob {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 15px;
+  height: 15px;
+  margin: 0 0 -7.5px -7.5px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: 0 1px 5px rgb(var(--ink-rgb) / 0.16);
+}
+
+@media (max-width: 640px) {
+  .lume {
+    right: 8px;
+    gap: 8px;
+    padding: 10px 6px;
+  }
+
+  .lume__cap {
+    display: none;
+  }
+}
+
+/* Secours sans WebGL : la photo, simplement. */
+.viewer__still {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.viewer__hint,
+.viewer__count {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.viewer__count {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}

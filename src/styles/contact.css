@@ -1,0 +1,389 @@
+/* --- formulaires, correspondance, partenariats -------------------------------
+   Un formulaire ne s'encadre pas : un intitulé en petites capitales, un filet
+   qui s'encre quand on s'y pose. Les états d'erreur ne colorent rien — ils
+   épaississent le trait et disent la chose en toutes lettres.
+   ------------------------------------------------------------------------ */
+
+.form__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(20px, 3vw, 34px);
+}
+
+/* Un champ occupe la ligne entière, sauf s'il est explicitement de moitié. */
+.form__body > .field,
+.form__send {
+  grid-column: 1 / -1;
+}
+
+.form__body > .field--half {
+  grid-column: span 1;
+}
+
+.field--area textarea {
+  width: 100%;
+  min-height: 132px;
+  padding: 10px 0 12px;
+  background: none;
+  border: 0;
+  resize: vertical;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.field--area textarea:focus {
+  outline: none;
+}
+
+.field--area textarea::placeholder {
+  color: var(--line);
+}
+
+.field__cap i {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0.04em;
+  color: var(--line);
+}
+
+.field__count {
+  display: block;
+  padding-top: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--line);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Les pastilles ne sont pas un champ à filet : elles se choisissent, elles ne
+   se saisissent pas — le trait du bas serait un mensonge. */
+.field--chips {
+  border-bottom: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chip {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  transition: color 0.35s var(--ease), border-color 0.35s var(--ease),
+    background 0.35s var(--ease);
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.chip.is-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.form__send {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3vw, 32px);
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.form__fine {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* --- la lettre cachetée --------------------------------------------------------- */
+
+.form__done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: clamp(12px, 3vh, 32px) 0;
+}
+
+.seal {
+  --sw: 1.4;
+  --dash: 4 5;
+  width: clamp(150px, 22vw, 210px);
+  margin-bottom: 26px;
+}
+
+.form__done-title {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.form__done-line {
+  max-width: 46ch;
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.form__again {
+  margin-top: 26px;
+  color: var(--muted);
+  padding-bottom: 4px;
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0 1px;
+  transition: color 0.4s var(--ease), background-size 0.5s var(--ease);
+}
+
+.form__again:hover {
+  color: var(--ink);
+  background-size: 100% 1px;
+}
+
+/* --- nous écrire ------------------------------------------------------------------ */
+
+.write {
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(32px, 7vw, 104px);
+  align-items: start;
+}
+
+.write__block {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.write__line {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.write__mail {
+  padding-bottom: 3px;
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 1px;
+  transition: background-size 0.5s var(--ease);
+}
+
+.write__mail:hover {
+  background-size: 0 1px;
+  background-position: 100% 100%;
+}
+
+.write__plan {
+  margin: 0;
+}
+
+.plan {
+  --sw: 1.1;
+  --dash: 4 6;
+}
+
+.plan__cap {
+  font-size: 9px;
+}
+
+.write__note {
+  margin: 22px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- partenariats ------------------------------------------------------------------ */
+
+.clock {
+  margin-top: clamp(36px, 5vh, 60px);
+  padding-top: clamp(24px, 3vh, 36px);
+  border-top: 1px solid var(--line);
+}
+
+.clock__cap {
+  margin: 0 0 18px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.clock__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(20px, 5vw, 68px);
+}
+
+.clock__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clock__num {
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(38px, 6vw, 84px);
+  line-height: 0.86;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock__unit {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.stages__item {
+  padding: 26px clamp(16px, 2vw, 30px) 30px 0;
+  border-right: 1px solid var(--line);
+}
+
+.stages__item:last-child {
+  border-right: 0;
+}
+
+.stages__num {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stages__when {
+  margin: 14px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stages__title {
+  margin: 6px 0 0;
+  font-size: clamp(18px, 1.9vw, 24px);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.stages__line {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.wanted {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(24px, 4vw, 60px);
+}
+
+.wanted__title {
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--ink);
+  font-size: clamp(16px, 1.7vw, 21px);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  max-width: 22ch;
+}
+
+.wanted__line {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.allies__form,
+.write__form {
+  max-width: 760px;
+}
+
+@media (max-width: 980px) {
+  .stages {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stages__item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .stages__item:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .wanted {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .write {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .form__body {
+    grid-template-columns: 1fr;
+  }
+
+  .form__body > .field--half {
+    grid-column: 1 / -1;
+  }
+
+  .stages {
+    grid-template-columns: 1fr;
+  }
+
+  .stages__item {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+  }
+}

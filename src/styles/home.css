@@ -1,0 +1,183 @@
+/* --- hero --------------------------------------------------------------- */
+
+/* Le visuel touche le bord droit. Avec une gouttière, la plaque grise
+   flottait au milieu du papier sans être ni une image pleine page ni une
+   planche encadrée — c'est franc maintenant : texte à gauche, image à droite,
+   coupées net. */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100svh - var(--header-h) - 34px);
+  align-items: center;
+}
+
+.hero__text {
+  padding: clamp(48px, 8vh, 120px) clamp(24px, 5vw, 96px);
+}
+
+.hero__title {
+  margin: 22px 0 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(44px, 5.6vw, 96px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.hero__title em {
+  font-style: normal;
+  font-weight: 400;
+  font-variation-settings: "wdth" 100;
+}
+
+.hero__lede {
+  max-width: 40ch;
+  margin: 26px 0 38px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.hero__media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin-left: auto;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.05);
+  transition: transform 2.6s var(--ease);
+}
+
+.hero__media.is-in img {
+  transform: scale(1);
+}
+
+/* --- bande défilante ---------------------------------------------------- */
+
+.band {
+  background: var(--ink);
+  color: var(--paper);
+  overflow: hidden;
+  padding: 22px 0;
+}
+
+.band .marquee__item {
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(20px, 3vw, 40px);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+/* --- manifeste ---------------------------------------------------------- */
+
+.manifesto {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: var(--section) var(--gutter);
+  text-align: center;
+}
+
+.manifesto__text {
+  margin: 28px 0 0;
+  font-weight: 300;
+  font-size: clamp(19px, 1.9vw, 27px);
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+}
+
+.manifesto__meta {
+  display: flex;
+  justify-content: center;
+  gap: clamp(24px, 5vw, 64px);
+  margin-top: 44px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Le second appel, sous le premier : plus léger de tout — une ligne, un point
+   qui bat, et un filet qui ne se tire qu'au survol. Il ne doit pas disputer sa
+   place au lien principal, seulement se laisser trouver. */
+.hero__aside {
+  position: relative;
+  /* De niveau bloc, mais pas plus large que son texte : elle passe ainsi
+     toujours sous « Découvrir la collection », à toutes les largeurs — en
+     `inline-flex` elle venait se ranger à côté dès qu'il restait de la place. */
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  text-align: left;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  transition: color 0.4s var(--ease);
+}
+
+.hero__aside::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.5s var(--ease);
+}
+
+.hero__aside:hover,
+.hero__aside:focus-visible {
+  color: var(--ink);
+}
+
+.hero__aside:hover::after,
+.hero__aside:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* Le point : il bat lentement, comme un témoin d'appareil resté allumé. */
+.hero__aside-tick {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  animation: heroTick 2.8s var(--ease) infinite;
+}
+
+@keyframes heroTick {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__aside-tick {
+    animation: none;
+    opacity: 1;
+  }
+}

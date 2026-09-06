@@ -1,0 +1,36 @@
+/* Les variables de la maison : couleurs, familles, mesures, courbe.
+   Tout ce qui se règle en un seul endroit vit ici, et nulle part ailleurs. */
+
+:root {
+  /* Les deux teintes de la maison sont posées en composantes : c'est ce qui
+     permet de les voiler — `rgb(var(--ink-rgb) / .5)` — sans redéclarer une
+     couleur à chaque transparence, et sans qu'un gris s'égare en chemin. */
+  --ink-rgb: 13 13 12;
+  --paper-rgb: 245 245 243;
+
+  --ink: rgb(var(--ink-rgb));
+  --paper: rgb(var(--paper-rgb));
+  --paper-2: #e6e6e4;
+  --ink-soft: #4a4945;
+  --muted: #8d8b84;
+  --line: #dedcd8;
+
+  /* Le voile des panneaux : le même pour le panier, l'aperçu et la caisse.
+     Ils avaient chacun le leur, à trois valeurs près — sans raison. */
+  --scrim: rgb(var(--ink-rgb) / 0.52);
+
+  /* Accents. Le vert dit qu'une saisie est en règle, l'or est la puce. */
+  --ok: #7fd6a4;
+  --gold: #d9c9a3;
+
+  /* Un seul registre : grotesque neutre pour tout, grotesque étendu et gras
+     pour les rares titres qui doivent frapper. */
+  --sans: "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --display: "Archivo", "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+
+  --gutter: clamp(20px, 4.2vw, 72px);
+  --section: clamp(90px, 13vh, 180px);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --header-h: 68px;
+}

@@ -1,0 +1,230 @@
+/* --- les pages de service ---------------------------------------------------
+   Une vue plein écran qui remplace la page. Elle n'a pas de décor propre : le
+   même papier, la même encre, les mêmes filets qu'ailleurs. Ce qui la tient,
+   c'est la règle de composition — un bandeau, un titre au registre étendu, et
+   des sections séparées par un trait, jamais par un aplat.
+   ------------------------------------------------------------------------ */
+
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--paper);
+}
+
+.page__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Le défilement appartient à la vue, pas au document : Lenis est à l'arrêt
+   tant qu'un panneau est ouvert, et `overscroll-behavior` empêche la page du
+   dessous de reprendre la main au bout de la course. */
+.page__scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- le système de traits ---------------------------------------------------
+   Le même qu'à la paillasse : plein pour la matière, pointillé pour ce qui
+   guide, disque plein pour un point relevé. Les épaisseurs sont exprimées dans
+   les unités du dessin — chaque planche règle `--sw` selon sa boîte, faute de
+   quoi un trait d'un même poids paraît fin sur une grande et lourd sur une
+   petite. Pas de `non-scaling-stroke` : il ferait calculer les tirets en
+   pixels d'écran, alors que `pathLength` les normalise dans le tracé.
+   ------------------------------------------------------------------------ */
+
+.art {
+  --sw: 1.4;
+  --dash: 5 7;
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.art .k,
+.art .d,
+.art .p {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: var(--sw);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* `pathLength="100"` sur chaque trait plein : un tiret de 100 couvre le tracé
+   entier, et le décalage se déroule de 100 à 0 sans rien mesurer.
+
+   Cent, et non un : GSAP arrondit les longueurs CSS à l'entier, si bien qu'un
+   décalage exprimé entre 0 et 1 tombait à zéro d'un coup — le trait
+   apparaissait au lieu de se tracer, et la route se disait faite en entier. */
+.art .k {
+  stroke-dasharray: 100;
+}
+
+.art .d {
+  stroke-width: calc(var(--sw) * 0.78);
+  stroke: rgb(var(--ink-rgb) / 0.4);
+  stroke-dasharray: var(--dash);
+}
+
+.art .p {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.art text {
+  fill: var(--muted);
+  stroke: none;
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* --- la composition commune ------------------------------------------------- */
+
+.page__hero {
+  padding: clamp(52px, 9vh, 118px) var(--gutter) clamp(40px, 6vh, 76px);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Le registre étendu vient de `.display`, que le titre porte déjà : ici on ne
+   règle que ce qui lui est propre — sa taille et son interligne. */
+.page__title {
+  margin: 22px 0 0;
+  font-size: clamp(40px, 6vw, 96px);
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+}
+
+.page__lede {
+  max-width: 54ch;
+  margin: 26px 0 0;
+  font-size: clamp(14px, 1.3vw, 16px);
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.page__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(28px, 6vw, 88px);
+  margin: clamp(36px, 5vh, 60px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page__stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.page__stats b {
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(24px, 2.6vw, 38px);
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.page__stats span {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.page__sec {
+  padding: clamp(52px, 8vh, 104px) var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+
+.page__sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: clamp(16px, 4vw, 48px);
+  margin-bottom: clamp(28px, 4.5vh, 56px);
+}
+
+.page__h2 {
+  margin: 0;
+  font-size: clamp(21px, 2.9vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.page__sec-note {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: right;
+}
+
+.page__folds {
+  max-width: 78ch;
+}
+
+.page__folds .fold__body {
+  max-width: none;
+}
+
+/* --- l'appel de fin --------------------------------------------------------- */
+
+.page__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: clamp(56px, 9vh, 120px) var(--gutter);
+  text-align: center;
+}
+
+.page__cta-link {
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(26px, 4.4vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 2px;
+  padding-bottom: 6px;
+  transition: background-size 0.6s var(--ease);
+}
+
+.page__cta-link:hover {
+  background-size: 0 2px;
+  background-position: 100% 100%;
+}
+
+@media (max-width: 700px) {
+  .page__sec-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .page__sec-note {
+    text-align: left;
+  }
+}

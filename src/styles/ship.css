@@ -1,0 +1,265 @@
+/* --- livraison & retours -----------------------------------------------------
+   La route est un relevé : cote en haut, chaussée en bas, arrêts à la verticale.
+   Le camion y est dessiné à la même plume que les planches de l'atelier.
+   ------------------------------------------------------------------------ */
+
+.ship__scene {
+  margin-bottom: clamp(32px, 5vh, 56px);
+}
+
+/* Sous 760 px, la scène ne se comprime pas : elle se fait glisser. Réduire un
+   dessin coté jusqu'à ce qu'il tienne revient à le rendre illisible. */
+.ship__frame {
+  position: relative;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.ship__frame::-webkit-scrollbar {
+  display: none;
+}
+
+.ship__svg {
+  --sw: 1.9;
+  --dash: 6 9;
+  min-width: 720px;
+}
+
+.ship__cote {
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+/* La part de route déjà faite : encrée, le reste demeure pointillé. */
+.ship__done {
+  stroke-dashoffset: 100;
+}
+
+.ship__speed {
+  opacity: 0;
+}
+
+/* Aucun `transform-box` ici : GSAP écrit sa matrice dans les unités du dessin,
+   et `fill-box` la ferait relire depuis le coin de la roue — elle partait
+   alors se poser à côté du camion à chaque tour. */
+
+.ship__dot {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.9;
+  transition: fill 0.45s var(--ease);
+}
+
+.ship__dot.is-on {
+  fill: var(--ink);
+}
+
+/* Les repères sont posés en pourcentage : le SVG occupe toute la largeur à
+   rapport constant, donc x/1000 tombe exactement sur la même fraction. */
+.ship__stops {
+  position: relative;
+  min-width: 720px;
+  height: 58px;
+}
+
+.ship__stop {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  color: var(--muted);
+  transition: color 0.4s var(--ease);
+}
+
+.ship__stop:hover,
+.ship__stop.is-on {
+  color: var(--ink);
+}
+
+.ship__stop-num {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ship__stop-name {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.ship__now {
+  max-width: 62ch;
+  min-height: 168px;
+}
+
+.ship__day {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ship__title {
+  margin: 8px 0 0;
+  font-size: clamp(22px, 3.2vw, 38px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.ship__line {
+  margin: 14px 0 0;
+  font-size: clamp(14px, 1.3vw, 16px);
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+/* --- les zones ---------------------------------------------------------------- */
+
+.zones__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.zones__tab {
+  flex: 1 1 auto;
+  padding: 16px 18px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-right: 1px solid var(--line);
+  transition: color 0.4s var(--ease), background 0.4s var(--ease);
+}
+
+.zones__tab:last-child {
+  border-right: 0;
+}
+
+.zones__tab:hover {
+  color: var(--ink);
+}
+
+.zones__tab.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.zones__facts {
+  margin: 0;
+  padding: 0;
+}
+
+.zones__row {
+  display: grid;
+  grid-template-columns: minmax(140px, 22%) 1fr;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.zones__row dt {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.zones__row dd {
+  margin: 0;
+  font-size: clamp(15px, 1.6vw, 19px);
+  letter-spacing: -0.01em;
+}
+
+/* --- le retour ------------------------------------------------------------------ */
+
+.returns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+  gap: clamp(32px, 7vw, 96px);
+  align-items: start;
+}
+
+.returns__mark {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.82;
+}
+
+.returns__num {
+  font-family: var(--display);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: clamp(96px, 15vw, 220px);
+  letter-spacing: -0.05em;
+}
+
+.returns__cap {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-left: 4px;
+}
+
+.returns__steps {
+  margin: clamp(28px, 4vh, 44px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.returns__steps li {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+
+.returns__steps li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.returns__steps span {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.returns__steps p {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 860px) {
+  .returns {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .zones__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}

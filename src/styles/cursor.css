@@ -1,0 +1,293 @@
+/* ==========================================================================
+   Curseur — réticule d'instrument
+
+   Le pointeur du système ne disparaît que si le script a pu poser `has-cur` :
+   sans lui, rien ne change. `mix-blend-mode: difference` sur du blanc donne
+   du noir sur le papier et du blanc sur une photo sombre — un seul dessin
+   reste lisible partout, sauf en fermeture où le rouge doit rester rouge.
+   ========================================================================== */
+
+html.has-cur,
+html.has-cur * {
+  cursor: none;
+}
+
+.cur {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  color: #fff;
+  mix-blend-mode: difference;
+  opacity: 0;
+  transition: opacity 0.25s linear;
+}
+
+.cur.is-on {
+  opacity: 1;
+}
+
+.cur__lag,
+.cur__pin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+/* --- la croix, qui ne retarde jamais ---------------------------------- */
+
+.cur__cross {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+  background:
+    linear-gradient(currentColor, currentColor) 50% 0 / 1px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) 50% 100% / 1px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 50% / 5px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 50% / 5px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 50% 50% / 1.5px 1.5px no-repeat;
+  transition:
+    transform 0.35s var(--ease),
+    opacity 0.25s linear;
+}
+
+.cur.is-text .cur__cross {
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.cur.is-down .cur__cross {
+  transform: scale(0.72);
+}
+
+/* En fermeture, la croix de visée s'efface : c'est le X qui parle. */
+.cur.is-close .cur__cross {
+  opacity: 0;
+}
+
+/* Le trait de saisie : la croix cède la place à un I de composition. */
+.cur__beam {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 20px;
+  margin: -10px 0 0 -0.5px;
+  background: currentColor;
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition:
+    opacity 0.2s linear,
+    transform 0.35s var(--ease);
+}
+
+.cur.is-text .cur__beam {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* --- la lunette, qui rattrape ----------------------------------------- */
+
+.cur__glyph {
+  position: absolute;
+  top: -32px;
+  left: -32px;
+  width: 64px;
+  height: 64px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+/* Les traits gardent leur épaisseur quelle que soit l'ouverture. */
+.cur__glyph * {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Le disque extérieur : pointillé, il tourne lentement comme une platine. */
+.cur__dish {
+  opacity: 0.5;
+  stroke-dasharray: 1 6;
+  transform-origin: 32px 32px;
+  animation: cur-dish 14s linear infinite;
+}
+
+.cur__lens {
+  opacity: 0.85;
+  transition: opacity 0.3s linear;
+}
+
+.cur__ticks {
+  opacity: 0.75;
+  transform-origin: 32px 32px;
+  transition: transform 0.45s var(--ease);
+}
+
+.cur.is-down .cur__ticks {
+  transform: scale(0.82);
+}
+
+/* La ligne d'analyse ne sert qu'à la loupe : elle balaie l'ouverture. */
+.cur__scan,
+.cur__x,
+.cur__arrows {
+  opacity: 0;
+  transition: opacity 0.25s linear;
+}
+
+.cur.is-lens .cur__scan {
+  opacity: 0.9;
+  animation: cur-scan 2.4s ease-in-out infinite;
+}
+
+.cur.is-lens .cur__lens {
+  opacity: 0.4;
+}
+
+.cur.is-close .cur__x,
+.cur.is-drag .cur__arrows {
+  opacity: 1;
+}
+
+.cur.is-close .cur__lens {
+  opacity: 0.35;
+}
+
+/* La fermeture est le seul geste coloré : le rouge sort du mélange. */
+.cur.is-close {
+  color: #e0402c;
+  mix-blend-mode: normal;
+}
+
+/* Au repos l'instrument se fait discret : la platine s'estompe, la croix reste. */
+.cur.is-idle .cur__dish {
+  opacity: 0.26;
+}
+
+.cur.is-idle .cur__lens {
+  opacity: 0.5;
+}
+
+/* Devant une image qui ne s'ouvre pas : la lunette se referme sur un point, et
+   la légende dit le modèle. Rien à activer, donc rien à proposer. */
+.cur.is-still .cur__dish,
+.cur.is-still .cur__ticks {
+  opacity: 0;
+}
+
+.cur.is-still .cur__lens {
+  opacity: 0.9;
+}
+
+.cur.is-still .cur__hud {
+  --hud-x: 18px;
+  --hud-y: 12px;
+}
+
+.cur.is-still .cur__coord {
+  opacity: 0;
+}
+
+.cur.is-text .cur__glyph {
+  opacity: 0;
+  transition: opacity 0.25s linear;
+}
+
+/* --- la lecture chiffrée ---------------------------------------------- */
+
+.cur__hud {
+  --hud-x: 20px;
+  --hud-y: 12px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  transform: translate(var(--hud-x), var(--hud-y));
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: transform 0.45s var(--ease);
+}
+
+.cur.is-link .cur__hud {
+  --hud-x: 28px;
+  --hud-y: 18px;
+}
+
+.cur.is-lens .cur__hud,
+.cur.is-drag .cur__hud {
+  --hud-x: 40px;
+  --hud-y: 28px;
+}
+
+/* Contre un bord, la lecture passe de l'autre côté du viseur plutôt que
+   de sortir de l'écran. */
+.cur.is-edge-x .cur__hud {
+  align-items: flex-end;
+  transform: translate(calc(-1 * var(--hud-x) - 100%), var(--hud-y));
+}
+
+.cur.is-edge-y .cur__hud {
+  transform: translate(var(--hud-x), calc(-1 * var(--hud-y) - 100%));
+}
+
+.cur.is-edge-x.is-edge-y .cur__hud {
+  align-items: flex-end;
+  transform: translate(calc(-1 * var(--hud-x) - 100%), calc(-1 * var(--hud-y) - 100%));
+}
+
+.cur__label {
+  font-weight: 600;
+}
+
+.cur__label:empty {
+  display: none;
+}
+
+.cur__coord {
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+}
+
+/* En loupe ou en fermeture, la légende prime : le chiffrage s'efface. */
+.cur.is-lens .cur__coord,
+.cur.is-close .cur__coord,
+.cur.is-text .cur__coord {
+  opacity: 0;
+}
+
+@keyframes cur-dish {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cur-scan {
+  0%,
+  100% {
+    transform: translateY(-11px);
+  }
+  50% {
+    transform: translateY(11px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cur__dish,
+  .cur.is-lens .cur__scan {
+    animation: none;
+  }
+}

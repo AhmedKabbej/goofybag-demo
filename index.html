@@ -1,0 +1,385 @@
+<!doctype html>
+<!--
+  GoofyBag — Maroquinerie, Paris · Collection 01
+
+  Développé par Ahmed Kabbej
+  Écrit à la main : TypeScript, GSAP, Lenis, Three.js. Rien d'autre.
+-->
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="GoofyBag — maison de maroquinerie. Cinq pièces, réduites à l'essentiel, façonnées à la main."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Inter+Tight:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>GoofyBag — Maroquinerie</title>
+  </head>
+  <body>
+    <!-- INTRO D'OUVERTURE -->
+    <div class="intro" data-intro>
+      <div class="intro__inner">
+        <p class="intro__mark">GoofyBag</p>
+        <p class="intro__meta"><span>Collection 01</span><span>Automne 2026</span></p>
+      </div>
+      <div class="intro__load">
+        <div class="intro__rule"><span data-intro-rule></span></div>
+        <span class="intro__count" data-intro-count>00</span>
+      </div>
+    </div>
+
+    <!-- RIDEAU DE TRANSITION -->
+    <div class="curtain" data-curtain aria-hidden="true"></div>
+
+    <!-- ANNONCE -->
+    <div class="announce">
+      <div class="marquee" data-marquee data-speed="42" aria-hidden="true">
+        <span class="marquee__item">
+          Livraison offerte dans le monde entier · Édition limitée à 40 exemplaires ·
+          Retours sous 30 jours ·
+        </span>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header" id="header">
+      <nav class="header__nav header__nav--left" aria-label="Principale">
+        <a href="#collection">Collection</a>
+        <a href="#atelier">Atelier</a>
+        <a href="#maison">La maison</a>
+      </nav>
+
+      <a class="wordmark" href="#top" aria-label="GoofyBag, accueil">GoofyBag</a>
+
+      <div class="header__nav header__nav--right">
+        <a href="#journal" class="hide-sm">Journal</a>
+        <button class="linklike" type="button" data-open-cart>
+          Panier <span class="cart-count" data-cart-count>0</span>
+        </button>
+        <button class="burger" type="button" data-open-menu aria-label="Ouvrir le menu">
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- OUVERTURE -->
+      <section class="opening" data-opening>
+        <div class="opening__band" aria-hidden="true">
+          <div class="marquee" data-marquee data-speed="22">
+            <span class="marquee__item opening__word">GoofyBag —</span>
+          </div>
+        </div>
+
+        <div class="opening__credits">
+          <span>Collection 01 — Automne 2026</span>
+          <span class="hide-sm">Paris — fait main</span>
+          <span>Cinq pièces</span>
+        </div>
+
+        <div class="opening__stage" data-opening-stage data-open-product
+             role="button" tabindex="0" aria-label="Voir la pièce"></div>
+
+        <div class="opening__foot">
+          <div class="opening__caption">
+            <p class="opening__name" data-opening-name></p>
+            <p class="opening__meta">
+              <span data-opening-colour></span><span data-opening-price></span>
+            </p>
+          </div>
+          <div class="opening__rail" data-opening-rail></div>
+        </div>
+
+        <button class="opening__scroll" type="button" data-opening-next>
+          Faire défiler<span aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero__text">
+          <p class="label reveal">Collection 01 — Automne 2026</p>
+          <h1 class="hero__title reveal">
+            Le sac,<br />réduit à <em>l'essentiel</em>.
+          </h1>
+          <p class="hero__lede reveal">
+            Cinq pièces. Une seule idée : ce qui reste quand on a tout enlevé.
+          </p>
+          <a class="link-arrow reveal" href="#collection">Découvrir la collection</a>
+          <button class="hero__aside reveal" type="button" data-open-lab>
+            <span class="hero__aside-tick" aria-hidden="true"></span>
+            Voir naître un sac — douze heures en six étapes
+          </button>
+        </div>
+        <figure class="hero__media reveal" data-cursor-label="Le Croissant · 29 × 22 × 10 cm">
+          <img src="/bag4.webp" alt="Le Croissant, bleu glacier" fetchpriority="high" />
+        </figure>
+      </section>
+
+      <!-- BANDE DÉFILANTE -->
+      <div class="band">
+        <div class="marquee" data-marquee data-speed="70" aria-hidden="true">
+          <span class="marquee__item">
+            GoofyBag — Fait main à Paris — GoofyBag — Édition 01 — GoofyBag —
+            Garantie à vie —
+          </span>
+        </div>
+      </div>
+
+      <!-- MANIFESTE -->
+      <section class="manifesto" id="maison">
+        <p class="label reveal">La maison</p>
+        <h2 class="manifesto__text reveal">
+          GoofyBag est né d'un refus : celui du sérieux. Nous dessinons des formes
+          simples — un nuage, une fleur, un galet — et nous les fabriquons comme on
+          fabrique un sac que l'on garde vingt ans. Une ligne, une matière, une couture.
+          Rien de plus.
+        </h2>
+        <div class="manifesto__meta reveal">
+          <span>Paris</span><span>Depuis 2026</span><span>Fait main</span>
+        </div>
+      </section>
+
+      <!-- COLLECTION -->
+      <section class="section" id="collection">
+        <div class="section__head reveal">
+          <h2 class="section__title">La collection</h2>
+          <a class="link-arrow" href="#atelier">Édition 01 — Cinq pièces</a>
+        </div>
+        <div class="grid grid--3" data-grid></div>
+      </section>
+
+      <!-- ATELIER -->
+      <section class="editorial" id="atelier">
+        <figure class="editorial__media reveal" data-cursor-label="Le Galet · Sauge &amp; Écru">
+          <img src="/bag3.webp" alt="Le Galet, sauge et écru" loading="lazy" />
+        </figure>
+        <div class="editorial__text">
+          <p class="label reveal">L'atelier</p>
+          <h2 class="editorial__title reveal">Douze heures<br />pour un sac.</h2>
+          <ol class="specs">
+            <li class="reveal">
+              <span>01</span>
+              <p>Matières sélectionnées en Europe — velours côtelé, nylon matelassé, fausse fourrure.</p>
+            </li>
+            <li class="reveal">
+              <span>02</span>
+              <p>Coupe, montage et finitions à la main, pièce par pièce, dans notre atelier parisien.</p>
+            </li>
+            <li class="reveal">
+              <span>03</span>
+              <p>Réparation offerte à vie. Un sac ne se remplace pas, il se répare.</p>
+            </li>
+          </ol>
+          <button class="hero__aside reveal" type="button" data-open-lab>
+            <span class="hero__aside-tick" aria-hidden="true"></span>
+            Voir naître un sac — douze heures en six étapes
+          </button>
+        </div>
+      </section>
+
+      <!-- CAMPAGNE -->
+      <section class="lookbook" id="campagne">
+        <div class="lookbook__head reveal">
+          <p class="label">Campagne — Automne 2026</p>
+          <p class="lookbook__where">Photographié à Paris — Deux planches</p>
+        </div>
+        <div class="lookbook__duo" data-lookbook></div>
+      </section>
+
+      <!-- JOURNAL / NEWSLETTER -->
+      <section class="news" id="journal">
+        <p class="label reveal">Le journal</p>
+        <h2 class="news__title reveal">Une lettre, quatre fois l'an.</h2>
+        <form class="news__form reveal" data-newsletter>
+          <input type="email" required placeholder="Adresse e-mail" aria-label="Adresse e-mail" />
+          <button type="submit">S'inscrire</button>
+        </form>
+        <p class="news__fine reveal">
+          Quatre envois par an, à chaque ouverture d'édition. Pas de relance, pas de code
+          promotionnel — on se désabonne en un clic.
+        </p>
+        <p class="news__note" data-newsletter-note hidden>
+          Merci — un message vient de partir.
+          <button type="button" class="linklike news__read" data-open-mail>Le lire</button>
+        </p>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <p class="footer__logo">GoofyBag</p>
+          <p class="footer__line">Maroquinerie — Paris</p>
+        </div>
+        <div>
+          <p class="label">Boutique</p>
+          <a href="#collection">La collection</a>
+          <a href="#collection">Nouveautés</a>
+          <a href="#collection">Édition limitée</a>
+        </div>
+        <div>
+          <p class="label">Maison</p>
+          <a href="#maison">Notre histoire</a>
+          <a href="#atelier">L'atelier</a>
+          <a href="#journal">Journal</a>
+        </div>
+        <div>
+          <p class="label">Service</p>
+          <button type="button" data-page="ship">Livraison &amp; retours</button>
+          <button type="button" data-page="care">Entretien</button>
+          <button type="button" data-page="write">Nous écrire</button>
+          <button type="button" data-page="allies">Partenariats</button>
+        </div>
+      </div>
+      <!-- COLLABORATIONS / PARTENAIRES -->
+      <section class="partners" aria-labelledby="partners-title">
+        <p class="label partners__label reveal" id="partners-title">
+          Repères — maisons que nous regardons
+        </p>
+        <ul class="partners__list">
+          <li class="partners__item reveal">
+            <a
+              class="partners__link"
+              href="https://www.dolcegabbana.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor-label="Site officiel"
+              aria-label="Dolce &amp; Gabbana — site officiel, nouvel onglet"
+            >
+              <img
+                class="partners__logo partners__logo--block"
+                src="/partenaires/Dolce-and-Gabbana-logo.png"
+                alt="Dolce &amp; Gabbana"
+                loading="lazy"
+              />
+            </a>
+          </li>
+          <li class="partners__item reveal">
+            <a
+              class="partners__link"
+              href="https://www.massimodutti.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor-label="Site officiel"
+              aria-label="Massimo Dutti — site officiel, nouvel onglet"
+            >
+              <img
+                class="partners__logo partners__logo--line"
+                src="/partenaires/Massimo_Dutti.png"
+                alt="Massimo Dutti"
+                loading="lazy"
+              />
+            </a>
+          </li>
+          <li class="partners__item reveal">
+            <a
+              class="partners__link"
+              href="https://www.uniqlo.com/fr/fr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor-label="Site officiel"
+              aria-label="Uniqlo — site officiel, nouvel onglet"
+            >
+              <img
+                class="partners__logo partners__logo--square"
+                src="/partenaires/UNIQLO_logo_(Japanese).svg"
+                alt="Uniqlo"
+                loading="lazy"
+              />
+            </a>
+          </li>
+          <li class="partners__item reveal">
+            <a
+              class="partners__link"
+              href="https://www.bershka.com/fr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor-label="Site officiel"
+              aria-label="Bershka — site officiel, nouvel onglet"
+            >
+              <img
+                class="partners__logo partners__logo--wide"
+                src="/partenaires/Bershka-Logo.png"
+                alt="Bershka"
+                loading="lazy"
+              />
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <div class="footer__bottom">
+        <span>© <span data-year></span> GoofyBag</span>
+        <span>Français — EUR €</span>
+      </div>
+    </footer>
+
+    <!-- MENU MOBILE -->
+    <div class="menu" data-menu hidden>
+      <button class="menu__close" type="button" data-close-menu aria-label="Fermer">Fermer</button>
+      <nav>
+        <a href="#collection" data-close-menu>Collection</a>
+        <a href="#atelier" data-close-menu>Atelier</a>
+        <a href="#maison" data-close-menu>La maison</a>
+        <a href="#journal" data-close-menu>Journal</a>
+        <hr class="menu__rule" />
+        <button type="button" data-page="ship" data-close-menu>Livraison &amp; retours</button>
+        <button type="button" data-page="care" data-close-menu>Entretien</button>
+        <button type="button" data-page="write" data-close-menu>Nous écrire</button>
+        <button type="button" data-page="allies" data-close-menu>Partenariats</button>
+      </nav>
+    </div>
+
+    <!-- PAGE PRODUIT -->
+    <div class="pdp" data-pdp hidden></div>
+
+    <!-- APERÇU 3D -->
+    <div class="viewer" data-viewer hidden></div>
+
+    <!-- PANIER -->
+    <div class="drawer" data-cart hidden>
+      <div class="drawer__scrim" data-close-cart></div>
+      <aside class="drawer__panel">
+        <header class="drawer__head">
+          <p class="label">Panier</p>
+          <button class="linklike" type="button" data-close-cart>Fermer</button>
+        </header>
+        <div class="drawer__body" data-cart-body data-lenis-prevent></div>
+        <footer class="drawer__foot">
+          <div class="drawer__total">
+            <span>Sous-total</span><span data-cart-total>0,00 €</span>
+          </div>
+          <p class="drawer__note">Livraison et taxes calculées au paiement.</p>
+          <button class="btn btn--block" type="button" data-open-pay>Passer commande</button>
+        </footer>
+      </aside>
+    </div>
+
+    <!-- PAGES DE SERVICE -->
+    <div class="page" data-page-host hidden></div>
+
+    <!-- LE MESSAGE DE BIENVENUE -->
+    <div class="mail" data-mail hidden></div>
+
+    <!-- LE PROCÉDÉ -->
+    <div class="lab" data-lab hidden></div>
+
+    <!-- PREVIEW 3D — LE QUARTIER DE L'ATELIER -->
+    <div class="demo" data-demo hidden></div>
+
+    <!-- PAIEMENT (DÉMONSTRATION) -->
+    <div class="pay" data-pay data-lenis-prevent hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
