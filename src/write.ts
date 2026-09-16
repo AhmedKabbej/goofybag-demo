@@ -1,20 +1,9 @@
 import { bindForm, formMarkup, type FormSpec } from './form'
 import type { Page } from './page'
 
-/* -------------------------------------------------------------------------
-   Nous écrire — un filet sous chaque ligne, rien de plus
-
-   Le formulaire ne s'encadre pas, ne se colore pas, ne se met pas en boîte :
-   un intitulé en petites capitales, un trait qui s'encre quand on s'y pose.
-   C'est la même règle que partout ailleurs sur le site — le texte porte, la
-   forme se tait — et c'est ce qui permet à la lettre cachetée, à la fin,
-   d'être le seul geste de la page.
-
-   À gauche, ce que le formulaire ne remplace pas : une adresse, des heures,
-   et le plan pour venir — parce qu'il y a des questions qu'on préfère poser
-   à quelqu'un. Sous l'adresse, un « Preview 3D » ouvre le quartier vu du
-   ciel : le plan au trait dit où c'est, le film dit à quoi ça ressemble.
-   ---------------------------------------------------------------------- */
+// page contact
+// le formulaire est genere par form.ts, ici on donne juste le SPEC
+// a gauche : adresse horaires + un plan en svg + le bouton preview 3D
 
 const SPEC: FormSpec = {
   fields: [
@@ -32,9 +21,8 @@ const SPEC: FormSpec = {
   },
 }
 
-/** Le quartier, au trait : deux rues, deux avenues, le canal, et l'îlot.
-    Les légendes sont posées dans les blancs — un plan qui se lit mal ne vaut
-    pas mieux qu'une adresse écrite deux fois. */
+// le plan du quartier fait a la main en svg. meme systeme de classes que le lab
+// (.k plein / .d pointille / .p les ronds)
 const PLAN = `
   <svg class="art plan" viewBox="0 0 260 180" aria-hidden="true">
     <path class="d" d="M0 48h260M0 140h260M86 0v180M176 0v180" />

@@ -26,17 +26,10 @@ import { playIntro, setupMarquees, toggleFold } from './chrome'
 import { startOpening } from './opening'
 import { closeMail, mail, openMail } from './mail'
 
-/* -------------------------------------------------------------------------
-   GoofyBag — point d'entrée
-
-   Ce fichier ne fait que deux choses : router les gestes vers le module qui
-   sait quoi en faire, et démarrer. Toute la logique vit à côté, un module par
-   morceau de l'interface.
-
-   Le routage est délégué, une seule fois, sur le document : les panneaux
-   réécrivent leur contenu à volonté sans qu'aucun écouteur ne soit à
-   rebrancher, et l'on lit ici, d'un seul tenant, ce que chaque geste déclenche.
-   ---------------------------------------------------------------------- */
+// point d'entree
+// ici que du routing : un seul listener click et un seul keydown sur document
+// je fais de la delegation partout pcq les panneaux refont leur innerHTML
+// tout le temps dc avec des listeners directs faudrait rebrancher a chaque fois
 
 const menu = q<HTMLElement>('[data-menu]')!
 
@@ -45,7 +38,7 @@ document.addEventListener('click', (e) => {
   const t = e.target
   const hit = <T extends HTMLElement = HTMLElement>(sel: string) => t.closest<T>(sel)
 
-  // Ouvertures et fermetures de panneaux.
+  // ouverture / fermeture des panneaux
   if (hit('[data-open-menu]')) return openOverlay(menu)
   if (hit('[data-close-menu]')) closeOverlay(menu)
   if (hit('[data-open-cart]')) return openOverlay(drawer)
@@ -61,7 +54,7 @@ document.addEventListener('click', (e) => {
   if (hit('[data-open-demo]')) return openDemo()
   if (hit('[data-close-demo]')) return closeDemo()
 
-  // Les pages de service : ce sont des vues, elles arrivent par le rideau.
+  // les pages service passent par le rideau (transition)
   if (hit('[data-close-page]')) return transition(closePage)
   const toPage = hit<HTMLElement>('[data-page]')?.dataset.page
   if (toPage) return transition(() => openPage(toPage))
@@ -69,12 +62,12 @@ document.addEventListener('click', (e) => {
   const sel = selection()
   if (hit('[data-open-viewer]')) return void (sel && openViewer(sel))
 
-  // Déclinaison choisie depuis une carte de la grille.
+  // clic sur une pastille couleur dans la grille
   const cardDot = hit('[data-card-dot]')
   const card = hit('[data-slug]')
   if (cardDot?.dataset.cardDot && card) return setCardColour(card, cardDot.dataset.cardDot)
 
-  // Déclinaison ou taille choisie dans la fiche.
+  // couleur / taille dans la fiche produit
   const pickColour = hit('[data-pick-colour]')
   if (pickColour?.dataset.pickColour) return setColour(pickColour.dataset.pickColour)
 
@@ -84,11 +77,11 @@ document.addEventListener('click', (e) => {
   const fold = hit('[data-fold]')
   if (fold) return toggleFold(fold)
 
-  // Navigation d'un modèle à l'autre depuis la fiche.
+  // fleches precedent / suivant dans la fiche
   const step = hit('[data-model-step]')
   if (step) return stepModel(Number(step.dataset.modelStep))
 
-  // Mises au panier : depuis une carte, ou depuis la fiche ouverte.
+  // ajout au panier. soit depuis une carte soit depuis la fiche
   if (hit('[data-add]') && card?.dataset.slug) {
     const p = find(card.dataset.slug)
     if (p) addToCart(p.slug, card.dataset.colourName ?? defaultColour(p).name, p.sizes[0].name)
@@ -110,7 +103,7 @@ document.addEventListener('click', (e) => {
     return
   }
 
-  // Ancres internes : c'est Lenis qui défile, pas le navigateur.
+  // les liens #ancre : on passe par lenis sinon le scroll natif casse le smooth
   const anchor = hit<HTMLAnchorElement>('a[href^="#"]')
   const href = anchor?.getAttribute('href') ?? ''
   if (!anchor || href === '#') return
@@ -121,8 +114,9 @@ document.addEventListener('click', (e) => {
 })
 
 document.addEventListener('keydown', (e) => {
-  /* L'aperçu et la caisse captent tout tant qu'ils sont ouverts : on y tourne
-     une pièce ou l'on y saisit des chiffres, les raccourcis n'y ont rien à faire. */
+  // ordre important : les panneaux du dessus mangent la touche en premier
+  // (dans le viewer on tourne le sac, dans le checkout on tape des chiffres
+  // dc les raccourcis globaux doivent pas passer)
   if (isOpen(viewer)) {
     if (e.key === 'Escape') closeViewer()
     return
@@ -142,8 +136,8 @@ document.addEventListener('keydown', (e) => {
     return
   }
 
-  /* Le film se pose par-dessus la page « Nous écrire » : il capte l'échappée
-     avant elle, sinon la page partirait sous lui. */
+  // la demo s'ouvre par dessus la page contact dc elle doit passer avant
+  // sinon echap ferme la page qui est dessous et la demo reste toute seule
   if (isOpen(demo)) {
     if (e.key === 'Escape') closeDemo()
     return
@@ -155,20 +149,20 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (e.key === 'Escape') {
-    // `selection()` plutôt que le panneau : l'article peut être engagé sans
-    // que la fiche soit encore apparue — l'échappée doit valoir aussi là.
+    // on teste selection() et pas isOpen(pdp) pcq pendant le rideau le
+    // produit est deja selectionne mais le panneau pas encore affiche
     if (selection()) transition(closeProduct)
     ;[drawer, menu].forEach((el) => isOpen(el) && closeOverlay(el))
     return
   }
 
-  // Flèches : on passe d'un modèle à l'autre sans quitter la fiche.
+  // fleches gauche/droite = modele suivant sans fermer la fiche
   if (isOpen(pdp) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
     e.preventDefault()
     return stepModel(e.key === 'ArrowRight' ? 1 : -1)
   }
 
-  // Ouverture de la fiche au clavier depuis une carte.
+  // entree / espace sur une carte = ouvrir la fiche (accessibilite)
   if (e.key === 'Enter' || e.key === ' ') {
     const media = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-open-product]')
     if (!media) return
@@ -179,7 +173,7 @@ document.addEventListener('keydown', (e) => {
   }
 })
 
-/* --- démarrage ----------------------------------------------------------- */
+// --- init ---
 
 history.scrollRestoration = 'manual'
 

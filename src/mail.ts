@@ -2,14 +2,9 @@ import gsap from 'gsap'
 import { q, reduced } from './dom'
 import { closeOverlay, openOverlay } from './overlay'
 
-/* -------------------------------------------------------------------------
-   Le message de bienvenue
-
-   Le courriel existe vraiment : `public/journal/bienvenue.html`, écrit en
-   tableaux et en styles portés, prêt à être envoyé tel quel. On le montre ici
-   dans son cadre de boîte de réception plutôt que de le décrire — c'est le
-   même fichier, chargé dans un cadre, pas une imitation.
-   ---------------------------------------------------------------------- */
+// popup qui montre le mail de bienvenue
+// le html du mail est dans public/journal/bienvenue.html et on le charge dans
+// une iframe. comme ca c'est le vrai fichier qu'on voit pas une copie
 
 const mail = q<HTMLElement>('[data-mail]')!
 

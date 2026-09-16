@@ -1,16 +1,11 @@
-/* -------------------------------------------------------------------------
-   La carte, en tant que suite de chiffres
-
-   Ce que le réseau impose (longueur, découpe, taille du cryptogramme), la
-   teinte qui va avec, et la clé de Luhn. Rien ici ne touche au document :
-   ce sont des fonctions pures, qu'on peut lire — et vérifier — seules.
-   ---------------------------------------------------------------------- */
+// tout ce qui concerne le numero de carte : longueur, format d'affichage, couleur
+// que des fonctions pures ici. rien qui touche au DOM
 
 export type Kind = {
   name: string
   groups: number[]
   cvc: number
-  /** L'américaine porte son cryptogramme sur la face, pas au dos. */
+  /** amex = cryptogramme devant et 4 chiffres. les autres c'est derriere */
   frontCode: boolean
   tint: string
 }
@@ -43,7 +38,7 @@ export const digitsOf = (v: string) => v.replace(/\D+/g, '')
 
 export const cardLength = (k: Kind) => k.groups.reduce((n, g) => n + g, 0)
 
-/** Découpe la saisie selon le réseau : 4-4-4-4, ou 4-6-5 pour l'américaine. */
+// met les espaces : 4-4-4-4 en general, 4-6-5 pour amex
 export function groupDigits(digits: string, k: Kind): string {
   const out: string[] = []
   let at = 0
@@ -55,7 +50,7 @@ export function groupDigits(digits: string, k: Kind): string {
   return out.join(' ')
 }
 
-/** Le numéro tel qu'il se lit sur la carte : ce qui est tapé, puis des points. */
+// ce qu'on affiche sur la carte 3D : les chiffres tapes + des points pour le reste
 export function maskedNumber(digits: string, k: Kind): string {
   const full = digits.padEnd(cardLength(k), '•')
   const out: string[] = []

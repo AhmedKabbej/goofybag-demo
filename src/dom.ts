@@ -1,6 +1,4 @@
-/* Les quelques outils que tout le module partage : chercher dans le document,
-   écrire un prix, savoir si l'on doit s'abstenir d'animer. Rien de plus — une
-   couche d'abstraction de plus ne rendrait aucun service ici. */
+// les 3-4 helpers utilises partout. pas la peine d'en faire une lib
 
 export const q = <T extends Element>(sel: string, root: ParentNode = document) =>
   root.querySelector<T>(sel)

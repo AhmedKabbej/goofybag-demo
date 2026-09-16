@@ -1,40 +1,26 @@
 import gsap from 'gsap'
 
-/* -------------------------------------------------------------------------
-   Curseur — un réticule d'instrument
-
-   Le pointeur du système disparaît au profit d'un viseur : une croix précise
-   qui ne retarde jamais sur la main, une lunette qui la rattrape avec un
-   temps de retard, et une petite lecture chiffrée — la position du point,
-   en pixels — comme sur un banc optique.
-
-   Le viseur change d'état selon ce qu'il survole : il s'ouvre sur un lien,
-   s'écarte en loupe sur une image, se barre d'une croix rouge sur une
-   commande de fermeture, montre deux flèches là où l'on fait glisser, et
-   s'efface au profit d'un trait vertical dans un champ de saisie.
-
-   Rien de tout cela ne s'active sans une souris : au doigt, ou si le script
-   ne tourne pas, le pointeur natif reste en place (la classe `has-cur`, posée
-   d'ici, est la seule à masquer le curseur du système).
-   ---------------------------------------------------------------------- */
+// curseur custom
+// 2 elements : la croix qui suit la souris pile poil et le cercle qui suit
+// avec du retard. le cercle change de taille selon ce qu'on survole
+// uniquement sur desktop avec une souris. c'est ce fichier qui ajoute la classe
+// has-cur dc si le js plante on garde le curseur normal
 
 type Mode = 'idle' | 'link' | 'lens' | 'still' | 'close' | 'drag' | 'text'
 
-/** Ouverture de la lunette et légende, pour chaque état. */
+// taille du cercle + texte affiche pour chaque etat
 const SPEC: Record<Mode, { scale: number; label: string }> = {
   idle: { scale: 0.6, label: '' },
   link: { scale: 1, label: 'Activer' },
   lens: { scale: 1.62, label: 'Observer' },
-  /* Une image qui ne s'ouvre pas ne se propose pas : le viseur s'y referme, et
-     ne dit que ce qu'il y a à savoir — le modèle, ses cotes. */
+  // still = image pas cliquable dc pas de label, on reduit juste le cercle
   still: { scale: 0.46, label: '' },
   close: { scale: 0.9, label: 'Fermer' },
   drag: { scale: 1.2, label: 'Glisser' },
   text: { scale: 0.6, label: 'Saisie' },
 }
 
-/* Ce qui se survole, et ce que le viseur en fait. L'ordre compte : la
-   première règle qui répond l'emporte, du plus précis au plus général. */
+// l'ordre compte : on prend la 1ere qui match dc du plus precis au plus large
 const RULES: { mode: Mode; sel: string }[] = [
   {
     mode: 'close',
@@ -55,7 +41,7 @@ const RULES: { mode: Mode; sel: string }[] = [
   },
   { mode: 'text', sel: 'input:not([type="button"]):not([type="submit"]), textarea' },
   { mode: 'drag', sel: '.viewer__stage, [data-lume-track], .lume' },
-  // La loupe ne va qu'à ce qui s'ouvre vraiment.
+  // la loupe que sur les trucs qui s'ouvrent vraiment
   {
     mode: 'lens',
     sel: ['[data-open-product]', '[data-open-viewer]', '[data-open-demo]', '.card__media', '.partners__link'].join(','),
@@ -99,7 +85,7 @@ const MARKUP = `
 const pad = (n: number) => String(Math.max(0, Math.round(n))).padStart(4, '0')
 
 export function initCursor(): void {
-  // Pas de souris, pas de viseur : au doigt le pointeur natif reste seul maître.
+  // pas de souris (mobile / tablette) = on fait rien du tout
   if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -120,8 +106,8 @@ export function initCursor(): void {
   gsap.set([lag, pin], { xPercent: -50, yPercent: -50, x: -100, y: -100 })
   gsap.set(glyph, { scale: SPEC.idle.scale })
 
-  // La croix colle à la main ; la lunette la rattrape. C'est ce décalage,
-  // et lui seul, qui donne l'impression d'un appareil que l'on déplace.
+  // quickSetter pour la croix (instantane) et quickTo pour le cercle (retard)
+  // c'est ce decalage qui fait tout l'effet
   const pinX = gsap.quickSetter(pin, 'x', 'px')
   const pinY = gsap.quickSetter(pin, 'y', 'px')
   const lagX = reduced ? pinX : gsap.quickTo(lag, 'x', { duration: 0.42, ease: 'power3' })
@@ -147,16 +133,16 @@ export function initCursor(): void {
     label.textContent = caption
   }
 
-  /** Ce que le viseur doit devenir, à l'aplomb de ce point. */
+  // regarde ce qu'ya sous la souris et met le bon etat
   function read(target: EventTarget | null): void {
     const el = target instanceof Element ? target : null
     if (!el) return setMode('idle', SPEC.idle.label)
 
-    // Une légende posée sur l'élément — ou sur son parent — l'emporte sur tout.
+    // un data-cursor sur l'element (ou un parent) passe avant les regles
     const named = el.closest<HTMLElement>('[data-cursor], [data-cursor-label]')
     const rule = RULES.find((r) => el.closest(r.sel))
 
-    // `data-cursor` impose l'état ; `data-cursor-label` ne change que le mot.
+    // data-cursor = l'etat / data-cursor-label = juste le texte
     const forced = named?.dataset.cursor as Mode | undefined
     const next = forced && forced in SPEC ? forced : (rule?.mode ?? 'idle')
     const caption = named?.dataset.cursorLabel ?? SPEC[next].label
@@ -164,10 +150,10 @@ export function initCursor(): void {
     setMode(next, caption)
   }
 
-  /** Rallumer l'instrument : la main est revenue sur la page. */
+  // rallume le curseur qd la souris revient
   const show = () => root.classList.add('is-on')
 
-  // Dernier point connu : on en a besoin pour relire le survol sans mouvement.
+  // on garde la derniere position pour pouvoir relire sans mouvement (voir plus bas)
   const last = { x: -1, y: -1 }
 
   window.addEventListener(
@@ -181,7 +167,7 @@ export function initCursor(): void {
       lagX(e.clientX)
       lagY(e.clientY)
       coord.textContent = `x ${pad(e.clientX)} · y ${pad(e.clientY)}`
-      // Près d'un bord, la lecture bascule de l'autre côté du viseur.
+      // proche du bord droit / bas on fait passer le texte de l'autre cote
       root.classList.toggle('is-edge-x', e.clientX > innerWidth - 170)
       root.classList.toggle('is-edge-y', e.clientY > innerHeight - 80)
       read(e.target)
@@ -190,8 +176,8 @@ export function initCursor(): void {
     { passive: true },
   )
 
-  // Le survol peut changer sans que la main bouge : un panneau qui s'ouvre,
-  // une carte qui se remplit. On relit alors sous le point resté immobile.
+  // ce qu'ya sous la souris peut changer sans que la souris bouge
+  // (scroll, panneau qui s'ouvre...) dc on relit avec elementFromPoint
   const relire = () => {
     if (last.x >= 0) read(document.elementFromPoint(last.x, last.y))
   }
@@ -203,7 +189,7 @@ export function initCursor(): void {
   window.addEventListener('pointercancel', () => root.classList.remove('is-down'))
   window.addEventListener('blur', () => root.classList.remove('is-down'))
 
-  // Sorti de la page, l'instrument s'éteint plutôt que de rester collé au bord.
+  // si la souris sort de la page on cache le curseur sinon il reste colle au bord
   document.addEventListener('pointerleave', () => root.classList.remove('is-on'))
   document.addEventListener('pointerenter', () => root.classList.add('is-on'))
 }

@@ -3,10 +3,8 @@ import { q, qq, reduced } from './dom'
 import { lenis } from './scroll'
 import { observeReveals } from './reveal'
 
-/* -------------------------------------------------------------------------
-   Le décor de la page : l'en-tête qui se rétracte, le millésime du pied de
-   page, les dépliants de la fiche, les rubans défilants, et l'ouverture.
-   ---------------------------------------------------------------------- */
+// fourre tout pour le decor : header sticky, annee du footer, accordeons,
+// bandeaux defilants et l'intro du debut
 
 const header = q<HTMLElement>('#header')!
 lenis.on('scroll', ({ scroll }: { scroll: number }) =>
@@ -23,7 +21,7 @@ q<HTMLFormElement>('[data-newsletter]')?.addEventListener('submit', (e) => {
 const year = q<HTMLElement>('[data-year]')
 if (year) year.textContent = String(new Date().getFullYear())
 
-/** Déplie ou replie un bloc, en animant sa hauteur. */
+// ouvre / ferme un accordeon en animant la hauteur
 export function toggleFold(head: HTMLElement): void {
   const body = head.nextElementSibling as HTMLElement | null
   if (!body) return
@@ -59,14 +57,14 @@ export function toggleFold(head: HTMLElement): void {
     opacity: 0,
     duration: 0.5,
     ease: 'power2.out',
-    // La hauteur revient à `auto` : le bloc suivra un changement de largeur.
+    // on enleve la height a la fin pour que ca reste en auto
+    // sinon si la fenetre change de largeur le texte deborde
     onComplete: () => gsap.set(body, { clearProps: 'height' }),
   })
 }
 
-/* -------------------------------------------------------------------------
-   Rubans défilants — assez de copies pour couvrir deux écrans, vitesse en px/s
-   ---------------------------------------------------------------------- */
+// bandeaux qui defilent. on clone le contenu assez de fois pour couvrir 2 ecrans
+// data-speed est en px/s
 
 export function setupMarquees(): void {
   qq<HTMLElement>('[data-marquee]').forEach((track) => {
@@ -83,8 +81,8 @@ export function setupMarquees(): void {
       const unit = (track.firstElementChild as HTMLElement).getBoundingClientRect().width
       if (!unit) return
 
-      // Nombre pair de copies : le décalage de 50 % tombe alors pile sur une
-      // copie entière, la boucle est invisible même sur un écran très large.
+      // il FAUT un nombre pair de copies : on anime jusqu'a -50% dc si c'est
+      // impair on retombe au milieu d'une copie et on voit le saut
       let copies = Math.max(2, Math.ceil((window.innerWidth * 2) / unit))
       if (copies % 2) copies += 1
       for (let i = 1; i < copies; i++) track.appendChild(model.cloneNode(true))
@@ -100,7 +98,7 @@ export function setupMarquees(): void {
     }
 
     build()
-    // Les largeurs changent une fois les polices chargées, puis au redimensionnement.
+    // les largeurs bougent qd les fonts finissent de charger dc on refait
     document.fonts?.ready.then(build)
 
     let pending: ReturnType<typeof setTimeout> | undefined
@@ -111,9 +109,7 @@ export function setupMarquees(): void {
   })
 }
 
-/* -------------------------------------------------------------------------
-   Intro d'ouverture — le nom, un filet qui se trace, puis le rideau se lève
-   ---------------------------------------------------------------------- */
+// l'intro au chargement : le nom, un trait qui se dessine, puis ca se leve
 
 const counter = { v: 0 }
 
@@ -129,9 +125,9 @@ export function playIntro(): void {
 
   lenis.stop()
 
-  // L'intro ne doit jamais rester en travers : dans un onglet en arrière-plan,
-  // requestAnimationFrame est suspendu et la timeline se figerait, scroll bloqué.
-  // Ce garde-fou la termine d'office, quoi qu'il arrive.
+  // securite : si l'onglet est en arriere plan le rAF est mis en pause dc la
+  // timeline se fige et le scroll reste bloque. du coup on force la fin au bout
+  // d'un moment quoi qu'il arrive
   let done = false
   const finish = () => {
     if (done) return

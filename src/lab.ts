@@ -2,48 +2,39 @@ import gsap from 'gsap'
 import { q, qq, reduced } from './dom'
 import { closeOverlay, openOverlay } from './overlay'
 
-/* -------------------------------------------------------------------------
-   Le procédé — douze heures, six étapes
+/*
+  Le lab = les 6 etapes de fabrication qui defilent
 
-   Une paillasse plutôt qu'un diaporama : fond quadrillé, relevés chiffrés,
-   et des planches au trait qui se tracent devant vous, comme sorties d'une
-   table traçante. Le texte reste au minimum — une ligne par étape, l'heure à
-   laquelle elle a lieu, et rien d'autre.
-
-   Les dessins sont écrits à la main, en un seul système : trait plein pour la
-   matière, pointillé pour ce qui guide (axes, cotes, chemins de coupe), petit
-   disque pour un point remarquable. Chaque tracé porte `pathLength="1"`, ce
-   qui permet de le dérouler sans avoir à mesurer sa longueur réelle.
-   ---------------------------------------------------------------------- */
+  Les dessins sont en SVG ecrit a la main plus bas. Les classes servent a
+  animer : .k = le trait plein (la matiere) .d = les pointilles (les guides)
+  .p = les petits ronds. Sur les .k je mets pathLength=1 comme ca je peux
+  faire le trace avec dasharray sans calculer la vraie longueur
+*/
 
 type Step = {
-  /** Heure de l'atelier, sur les douze que dure un sac. */
   hour: string
-  /** Position sur la frise, de 0 à 1 — les étapes ne durent pas toutes autant. */
+  /** entre 0 et 1 pour placer le point sur la barre du bas */
   at: number
   title: string
   line: string
-  /** Le relevé de paillasse, en bas de planche. */
+  /** le petit texte sous le dessin */
   note: string
   plate: string
-  /** Le petit mouvement qui reste, une fois la planche tracée. Toutes n'en ont
-      pas besoin : une épure de patron n'a aucune raison de bouger. */
+  /** anim qui tourne en boucle apres le trace. optionnel toutes les etapes en ont pas */
   motion?: (svg: SVGSVGElement) => gsap.core.Tween | gsap.core.Timeline
 }
 
-/* La même pièce revient d'une planche à l'autre — un nuage à trois bosses, son
-   anse d'une seule courbe. C'est elle qu'on suit des douze heures durant : le
-   carnet ne change pas de sujet en cours de route. */
+// le contour du sac. je le reutilise dans presque toutes les etapes
 const CORPS =
   'M40 96a20 20 0 0 1 40 0 20 20 0 0 1 40 0 20 20 0 0 1 40 0v6c0 16-27 26-60 26s-60-10-60-26z'
-/** Le fond, relevé point par point le long de la courbe : c'est là que ça se coud. */
+// le dessous du sac (la ou passe la couture)
 const FOND = 'M46 100c6 18 28 26 54 26s48-8 54-26'
 const POINTS =
   'M51.5 104.7l-5.1 3.2M55.4 109.5l-4.2 4.3M60.5 113.6l-3.3 5M66.7 117l-2.5 5.5M73.9 119.6l-1.7 5.8' +
   'M82 121.5l-1 5.9M90.7 122.6l-.5 6M109.3 122.6l.5 6M118 121.5l1 5.9M126.1 119.6l1.7 5.8' +
   'M133.3 117l2.5 5.5M139.5 113.6l3.3 5M144.6 109.5l4.2 4.3M148.5 104.7l5.1 3.2'
 
-/** Un point qui court le long d'un tracé — la lame, l'aiguille. */
+// fait bouger le petit rond .run le long d'un path. utilise pour la lame et l'aiguille
 function courir(svg: SVGSVGElement, sel: string, seconds: number) {
   const guide = svg.querySelector<SVGPathElement>(sel)
   const bille = svg.querySelector<SVGCircleElement>('.run')
@@ -206,14 +197,13 @@ const STEPS: Step[] = [
 
 const lab = q<HTMLElement>('[data-lab]')!
 
-/** Temps de pose, une fois la planche tracée. Le tracé prend une seconde et
-    demie : une étape dure donc six secondes et demie en tout, de quoi lire la
-    ligne sans se sentir pressé. */
+// temps d'attente avant de passer a l'etape suivante
+// le trace prend ~1.5s dc en vrai une etape dure 6.6s
 const DWELL = 5.1
 
 let step = 0
 let run: gsap.core.Timeline | null = null
-/** Le mouvement qui tourne en fond, une fois la planche posée. */
+// l'anim en boucle de l'etape en cours. faut la kill avant d'en lancer une autre
 let loop: gsap.core.Tween | gsap.core.Timeline | null = null
 
 function markup(): string {
@@ -256,7 +246,7 @@ function markup(): string {
     </footer>`
 }
 
-/** Pose une étape : la planche se retrace, le texte se relève. */
+// affiche l'etape i. a la fin ca rappelle show() avec i+1 dc ca boucle tout seul
 function show(i: number, instant = false): void {
   step = (i + STEPS.length) % STEPS.length
   const s = STEPS[step]
@@ -281,14 +271,9 @@ function show(i: number, instant = false): void {
     return
   }
 
-  /* La planche se construit dans l'ordre où on la dessinerait : les guides
-     d'abord — axes, cotes, épures —, la matière ensuite, qui se déroule trait
-     par trait, et les points remarquables pour finir.
-
-     Le déroulé passe par `pathLength` : chaque tracé est normalisé à 1, on
-     peut donc l'ouvrir d'un tiret unique sans avoir à mesurer sa longueur
-     réelle. Les guides, eux, sont déjà en pointillé — leur tiret est pris, ils
-     paraissent donc en fondu. */
+  // on dessine dans l'ordre : guides > matiere > points
+  // les guides sont deja en pointille dans le css dc je peux pas faire le
+  // trace dessus (le dasharray est deja pris) du coup juste un fade
   const guides = Array.from(svg.querySelectorAll<SVGElement>('.d'))
   const matiere = Array.from(svg.querySelectorAll<SVGElement>('.k'))
   const points = Array.from(svg.querySelectorAll<SVGElement>('.p'))
@@ -320,16 +305,15 @@ function show(i: number, instant = false): void {
       0.15,
     )
     .to(fill, { scaleX: s.at, duration: 0.7, ease: 'power2.inOut' }, 0)
-    // Le petit mouvement prend le relais quand le trait est posé, pas avant.
+    // on lance l'anim en boucle seulement une fois que tout est dessine
     .add(() => { loop = s.motion?.(svg) ?? null })
     .to({}, { duration: DWELL })
 }
 
 export function openLab(): void {
   lab.innerHTML = markup()
-  /* Sans fondu : la feuille a déjà son entrée en CSS. Un fondu par-dessus la
-     saisirait à l'instant où elle est encore à zéro et l'y laisserait — c'est
-     la même raison qui l'écarte pour la fiche produit. */
+  // false = pas de fade, l'anim d'entree est deja faite en CSS
+  // si on met true ca reste bloque a opacity 0 (meme bug que sur la fiche produit)
   openOverlay(lab, false)
   qq<HTMLElement>('[data-lab-go]', lab).forEach((b) =>
     b.addEventListener('click', () => show(Number(b.dataset.labGo))),
@@ -346,7 +330,7 @@ export function closeLab(): void {
   lab.innerHTML = ''
 }
 
-/** Étape voisine, à la main : le défilement automatique reprend derrière. */
+// etape precedente / suivante au clavier. l'auto-play repart apres
 export function stepLab(dir: number): void {
   show(step + dir)
 }

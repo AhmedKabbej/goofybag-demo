@@ -2,9 +2,8 @@ import { euro, q } from './dom'
 import { colourOf, find, linePrice } from './products'
 import { openOverlay } from './overlay'
 
-/* -------------------------------------------------------------------------
-   Panier — une ligne par couple couleur / taille
-   ---------------------------------------------------------------------- */
+// le panier. une ligne = un produit + une couleur + une taille
+// du coup la cle c'est les 3 colles ensemble (voir keyOf)
 
 export type Line = { slug: string; colour: string; size: string; qty: number }
 

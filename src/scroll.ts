@@ -2,10 +2,9 @@ import gsap from 'gsap'
 import Lenis from 'lenis'
 import { reduced } from './dom'
 
-/* Le défilement du site passe par Lenis, cadencé par le ticker de GSAP : les
-   deux horloges n'en font qu'une, sinon le défilement et les animations
-   dérivent l'un par rapport à l'autre. Le module l'expose parce que les
-   panneaux doivent pouvoir l'arrêter, et l'en-tête l'écouter. */
+// smooth scroll avec Lenis
+// important : on branche Lenis sur le ticker GSAP sinon les 2 tournent sur des
+// raf differents et les anims au scroll decalent
 
 export const lenis = new Lenis({
   duration: 1.05,

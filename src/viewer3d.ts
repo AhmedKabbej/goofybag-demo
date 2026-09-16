@@ -1,45 +1,39 @@
-/* ---------------------------------------------------------------------------
-   Aperçu 3D — le sac est reconstruit depuis sa propre photo.
-
-   On ne redessine rien : on découpe la silhouette exacte du visuel (le fond
-   uniforme des prises de vue s'enlève proprement, y compris le vide sous
-   l'anse), on mesure en chaque point sa distance au bord, et on gonfle la
-   forme selon cette distance. Le sac retrouve son volume — épais au centre,
-   pincé sur les contours — et l'anse devient un vrai boudin.
-
-   De face, l'objet EST la photo. Sur le bourrelet — en haut, en bas, à gauche,
-   à droite — la photo ne peut plus servir : elle n'y dispose que de deux ou
-   trois pixels pour couvrir un quart de tour, et s'y étirait en traînées. La
-   matière y est donc rejouée : la trame est projetée dans l'espace du sac,
-   par ses trois faces, si bien qu'elle garde partout la même échelle et
-   contourne le bord sans se déchirer ; la couleur, elle, est reprise du corps
-   du sac au même endroit. La photo et la matière se croisent selon l'angle de
-   la surface — le sac est d'un seul tenant, sans couture ni raccord.
-   ------------------------------------------------------------------------ */
+// le gros morceau : on fabrique le sac en 3D a partir de la photo
+//
+// le principe :
+// 1. on detoure la photo (le fond est uni dc ca part bien, meme le trou sous l'anse)
+// 2. pour chaque pixel on calcule sa distance au bord
+// 3. on gonfle selon cette distance -> epais au milieu, pince sur les bords
+//
+// de face on affiche la photo telle quelle. mais sur la tranche la photo a que
+// 2-3 px pour couvrir tout le bord dc ca faisait des trainees degueu
+// dc sur la tranche on rejoue la matiere (une tuile projetee) et on melange les
+// 2 selon l'angle de la surface. resultat pas de raccord visible
+//
+// grosse partie en pur js (detourage, distance, gonflage) puis three.js a la fin
 
 import * as THREE from 'three'
 
 export type BagShape = 'nuage' | 'marguerite' | 'galet' | 'croissant' | 'eclipse'
 
-/* Dosage de la lumière au repos. La photo est déjà éclairée : de face, le rendu
-   doit valoir la photo. Ces deux constantes sont réglées à la mesure — voir le
-   contrôle de fidélité colorimétrique. Le curseur du viewer les fait varier
-   autour de ce point, qui reste son milieu de course. */
+// valeurs par defaut de la lumiere. la photo est deja eclairee dc de face le
+// rendu doit redonner la photo. reglees au pif puis verifiees en comparant les
+// pixels. le slider du viewer fait varier autour (0.5 = ces valeurs la)
 const AMBIENT = 0.69
 const ENV_LIGHT = 0.56
 
 export type ViewerHandle = {
-  /** Position du curseur dans la page, ramenée à [-1, 1]. */
+  /** position souris de -1 a 1 */
   point: (nx: number, ny: number) => void
   resize: () => void
   dispose: () => void
-  /** Fond de la prise de vue, à reporter derrière le canvas. */
+  /** couleur de fond de la photo, a remettre derriere le canvas */
   backdrop: string
-  /** Course unique : lumière, reflet et éclat, de 0 (sourd) à 1 (éclatant). */
+  /** le slider : 0 = sombre, 1 = tres eclaire */
   setLight: (t: number) => void
 }
 
-/** Rendu de surface propre à chaque matière. L'épaisseur, elle, vient des cotes. */
+// les reglages de surface par modele. l'epaisseur vient des dimensions
 const finish: Record<
   BagShape,
   {
@@ -49,7 +43,7 @@ const finish: Record<
     metal: number
     env: number
     glow: number
-    /** Part de trame rappelée sur la face — nulle sur un nylon, franche sur du poil. */
+    /** combien de matiere on remet sur la face. 0 pour un truc lisse, plus pour du poil */
     front: number
   }
 > = {
@@ -60,33 +54,30 @@ const finish: Record<
   eclipse: { grain: 3.4, bump: 2.4, rough: 0.99, metal: 0, env: 0.08, glow: 0.08, front: 0.22 },
 }
 
-/**
- * « 28 × 20 × 10 cm » → demi-épaisseur du volume, rapportée à la hauteur.
- * Le sac gonfle donc exactement de ce que la fiche annonce : un modèle plat
- * reste plat, un modèle profond prend son volume.
- */
+// "28 x 20 x 10 cm" -> l'epaisseur ramenee a la hauteur
+// comme ca le sac gonfle exactement de ce que dit la fiche
 export function depthFromDims(dims: string): number {
   const [w, h, d] = (dims.match(/\d+(?:[.,]\d+)?/g) ?? []).map((v) => Number(v.replace(',', '.')))
   if (!w || !h || !d) return 0.42
   return Math.min(0.72, Math.max(0.18, d / h))
 }
 
-/* --- découpe de la silhouette --------------------------------------------- */
+// --- le detourage ---
 
-/** Le raster de travail : masque du sac et distance au bord, en pixels. */
+// notre image de travail : le masque du sac + la distance au bord
 type Field = {
   W: number
   H: number
   mask: Uint8Array
   dist: Float32Array
-  /** Boîte englobante du sac dans ce raster. */
+  /** la bbox du sac dans ce raster */
   x0: number
   y0: number
   x1: number
   y1: number
-  /** Rapport largeur/hauteur de l'image d'origine. */
+  /** ratio de l'image d'origine */
   ratio: number
-  /** Le fond de la prise de vue, pour poser la découpe sur le même sol. */
+  /** la couleur de fond de la photo */
   backdrop: string
 }
 
@@ -105,17 +96,18 @@ function silhouette(img: HTMLImageElement): Field {
   ctx.drawImage(img, 0, 0, W, H)
   const px = ctx.getImageData(0, 0, W, H).data
 
-  /* Le fond de ces prises de vue est lisse au point d'être sans grain : c'est
-     lui, et non la couleur, qui sert de critère. Un sac ivoire sur fond clair
-     ne se distingue presque pas en teinte — mais sa matière, si. */
+  // on detoure sur la TEXTURE pas sur la couleur
+  // le fond des photos est parfaitement lisse alors qu'un sac a tjrs du grain
+  // (un sac ivoire sur fond clair a quasi la meme couleur que le fond, mais
+  // pas la meme matiere)
   const lum = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     const j = i * 4
     lum[i] = 0.2126 * px[j] + 0.7152 * px[j + 1] + 0.0722 * px[j + 2]
   }
-  /* Tous les voisinages de cette passe sont pris en deux temps, une fois par
-     axe : à cette finesse de trame, un noyau carré coûterait le carré de ce
-     qu'il rapporte, et l'aperçu se ferait attendre. */
+  // box blur separable (une passe en x puis une en y)
+  // en 2D direct ce serait r*r operations par pixel au lieu de 2*r, sur du 600px
+  // ca se sent direct au chargement
   const box = (src: Float32Array, r: number) => {
     const mid = new Float32Array(n)
     const out = new Float32Array(n)
@@ -147,7 +139,8 @@ function silhouette(img: HTMLImageElement): Field {
         Math.abs(l(x + 1, y) - l(x - 1, y)) + Math.abs(l(x, y + 1) - l(x, y - 1))
     }
   }
-  // Énergie de texture : le gradient moyenné, qui sépare la matière du vide.
+  // le gradient moyenne = "combien ya de detail ici". c'est ca qui separe
+  // le sac du fond
   const smoothed = box(grad, 4)
   const tex = new Float32Array(n)
   for (let i = 0; i < n; i++) tex[i] = smoothed[i] * 8
@@ -168,13 +161,12 @@ function silhouette(img: HTMLImageElement): Field {
       Math.abs(px[j] - bg[0]) + Math.abs(px[j + 1] - bg[1]) + Math.abs(px[j + 2] - bg[2])
   }
 
-  /* Semences : le bord de l'image, et tout fond franc où qu'il se trouve — le
-     vide sous l'anse en est un. Le critère est érodé pour ne pas s'amorcer
-     dans une fourrure claire, qui ressemble au fond mais n'est jamais lisse. */
+  // les points de depart du flood fill : les bords de l'image + tout ce qui
+  // ressemble vraiment au fond (le trou sous l'anse par ex)
   const seedable = new Uint8Array(n)
   for (let i = 0; i < n; i++) seedable[i] = grad[i] <= 1 && d2[i] <= 16 ? 1 : 0
-  // Érosion 9 × 9, en deux sommes glissantes : la semence doit être au centre
-  // d'un carré entièrement lisse, sans quoi elle s'amorce dans la matière.
+  // erosion 9x9 : un point de depart doit etre au centre d'un carre entierement
+  // lisse. sinon le fill part dans une fourrure claire et bouffe le sac
   const runX = new Int32Array(n)
   for (let y = 0; y < H; y++) {
     const row = y * W
@@ -223,13 +215,14 @@ function silhouette(img: HTMLImageElement): Field {
     if (y < H - 1) step(i + W)
   }
 
-  // L'ombre portée : lisse, et jamais loin du fond en teinte.
+  // l'ombre au sol : lisse et proche du fond en couleur, dc on la vire aussi
   for (let i = 0; i < n; i++) if (!isBg[i] && tex[i] < 14 && d2[i] < 70) isBg[i] = 1
 
   const mask = new Uint8Array(n)
   for (let i = 0; i < n; i++) mask[i] = isBg[i] ? 0 : 1
 
-  // Ce qui reste de la galette d'ombre : des colonnes courtes, et en bas.
+  // il reste des bouts d'ombre : des colonnes courtes et en bas de l'image
+  // on les enleve colonne par colonne
   let top = H
   let bot = 0
   for (let i = 0; i < n; i++) {
@@ -250,7 +243,7 @@ function silhouette(img: HTMLImageElement): Field {
     }
   }
 
-  // La plus grande pièce, et rien d'autre : les poussières partent avec.
+  // flood fill pour garder QUE la plus grosse zone. ca vire les pixels perdus
   const seen = new Int32Array(n).fill(-1)
   const stack: number[] = []
   let best = -1
@@ -277,7 +270,7 @@ function silhouette(img: HTMLImageElement): Field {
 
   for (let i = 0; i < n; i++) mask[i] = seen[i] === best ? 1 : 0
 
-  // Fermeture douce : les micro-entailles du contour se referment.
+  // dilate/erode pour boucher les micro trous du contour
   const dilate = (src: Uint8Array, want: number) => {
     const out = new Uint8Array(n)
     for (let y = 1; y < H - 1; y++) {
@@ -292,7 +285,7 @@ function silhouette(img: HTMLImageElement): Field {
   const closed = dilate(dilate(dilate(mask, 1), 1), 9)
   mask.set(dilate(closed, 9))
 
-  // La boîte englobante se relève après fermeture : c'est elle qui donne l'échelle.
+  // on recalcule la bbox APRES la fermeture, c'est elle qui donne l'echelle
   let x0 = W, y0 = H, x1 = 0, y1 = 0
   for (let i = 0; i < n; i++) {
     if (!mask[i]) continue
@@ -304,7 +297,8 @@ function silhouette(img: HTMLImageElement): Field {
     if (y > y1) y1 = y
   }
 
-  // Distance au bord, en deux passes (chanfrein 3-4).
+  // distance au bord en 2 passes (chanfrein 3-4, une vraie distance euclidienne
+  // serait bcp plus lente pour pas grand chose ici)
   const dist = new Float32Array(n)
   const BIG = 1e6
   for (let i = 0; i < n; i++) dist[i] = mask[i] ? BIG : 0
@@ -349,16 +343,14 @@ function silhouette(img: HTMLImageElement): Field {
   return { W, H, mask, dist, x0, y0, x1, y1, ratio, backdrop }
 }
 
-/* --- la peau : photo détourée, puis prolongée --------------------------------
-   Sur les deux ou trois pixels du contour, la photo est déjà mêlée au fond :
-   posée telle quelle sur la maille, elle cerne le sac d'un liseré gris. On les
-   remplace donc par la couleur du pixel de matière le plus proche, et l'on
-   prolonge de la même manière au-delà de la découpe — la teinte ne s'arrête
-   plus au bord, elle déborde. Une version très floue de cette image sert
-   ensuite de couleur de fond au bourrelet.
-   ------------------------------------------------------------------------ */
+// --- la texture ---
+// sur les 2-3 px du contour la photo est deja melangee au fond dc si on la
+// colle telle quelle ya un liseré gris tout autour du sac
+// dc on remplace ces px par le px de vraie matiere le plus proche, et on
+// continue au dela du contour pour que la couleur deborde
+// une version bien floutee sert de couleur pour la tranche
 
-/** En deçà de cette distance au bord, le pixel n'est plus de la matière franche. */
+// en dessous de 3px du bord on considere que le px est pollue par le fond
 const CLEAN = 3
 
 function shrink(from: HTMLCanvasElement, w: number, h: number): HTMLCanvasElement {
@@ -379,8 +371,8 @@ function skin(
   const { W, H, mask, dist } = field
   const n = W * H
 
-  /* Pour chaque pixel douteux, le pixel de matière franche le plus proche —
-     transformée de distance qui charrie sa source (chanfrein 3-4). */
+  // pour chaque px pourri on cherche le px propre le plus proche
+  // meme algo de distance que plus haut mais on trimballe aussi la source
   const sx = new Int32Array(n).fill(-1)
   const sy = new Int32Array(n).fill(-1)
   const fd = new Float32Array(n)
@@ -441,7 +433,7 @@ function skin(
       const cx = Math.min(W - 1, Math.round(fx))
       const i = cy * W + cx
       if ((mask[i] && dist[i] >= CLEAN) || sx[i] < 0) continue
-      // On garde la fraction de pixel : la reprise ne se voit pas en escalier.
+      // on garde les decimales sinon la reprise fait un escalier bien visible
       const ax = Math.min(AW - 1, Math.max(0, Math.round((sx[i] + fx - cx) / kx)))
       const ay = Math.min(AH - 1, Math.max(0, Math.round((sy[i] + fy - cy) / ky)))
       const s = (ay * AW + ax) * 4
@@ -458,8 +450,8 @@ function skin(
   albedo.colorSpace = THREE.SRGBColorSpace
   albedo.anisotropy = 8
 
-  /* La couleur du sac, débarrassée de tout détail : deux réductions
-     successives, une remontée douce. C'est elle qui teinte le bourrelet. */
+  // la couleur moyenne du sac sans aucun detail : on reduit 2 fois puis on
+  // remonte en douceur. sert a teinter la tranche
   const low = shrink(shrink(cv, Math.round(AW / 8), Math.round(AH / 8)), 56, Math.round(56 / field.ratio))
   const soft = shrink(shrink(low, 128, Math.round(128 / field.ratio)), 320, Math.round(320 / field.ratio))
   const body = new THREE.CanvasTexture(soft)
@@ -468,50 +460,43 @@ function skin(
   return { albedo, body }
 }
 
-/* --- gonflage ------------------------------------------------------------- */
+// --- le gonflage ---
 
-/**
- * La silhouette devient un coussin : plat au centre, pincé sur le contour.
- * Le profil est un quart de cercle — c'est ce qui donne aux bords cette
- * rondeur de matelassé plutôt qu'une tranche coupée net.
- *
- * En sort aussi la mesure du monde : la hauteur de l'image, en unités de la
- * maille. C'est elle qui accorde la trame projetée à celle de la face.
- */
+// transforme la silhouette en coussin : plat au milieu, pince sur les bords
+// renvoie aussi unit = la hauteur de l'image en unites 3D, ca sert a mettre
+// la matiere projetee a la meme echelle que la face
 function inflate(field: Field, depth: number): { geometry: THREE.BufferGeometry; unit: number } {
   const { W, H, mask, dist } = field
   const bw = field.x1 - field.x0
   const bh = field.y1 - field.y0
 
-  // Rayon d'arrondi : au-delà, l'épaisseur est constante.
+  // au dela de R px du bord l'epaisseur bouge plus
   const R = Math.max(6, Math.min(bw, bh) * 0.17)
   const scale = 2 / bh
   const cx = (field.x0 + field.x1) / 2
   const cy = (field.y0 + field.y1) / 2
 
-  /* Le profil du bourrelet. Un quart de cercle serait la forme juste — mais sa
-     tangente est verticale au contour : toute l'épaisseur du sac s'y prenait
-     entre deux pixels de la trame, soit un seul rang de facettes pour une
-     paroi qui, vue par la tranche, couvre le quart de la pièce. C'est ce rang
-     étiré qui ouvrait au milieu du sac cette bande claire, comme si les deux
-     moitiés ne se rejoignaient pas. Le quart de sinus monte au même sommet
-     mais part d'une pente finie : la paroi se répartit sur une vingtaine de
-     rangs, et le milieu se referme. On garde l'épaule pleine du coussin —
-     à mi-rayon, l'épaisseur vaut déjà les six septièmes de la cote. */
+  // le profil du bord
+  // au debut javais mis un quart de cercle (la forme "juste") mais sa tangente
+  // est verticale au contour : toute l'epaisseur se jouait sur 1 seul rang de
+  // facettes alors que vu de profil ce bord fait un quart du sac
+  // -> ca faisait une bande claire au milieu comme si les 2 moities se
+  // rejoignaient pas
+  // avec tanh on arrive au meme sommet mais avec une pente finie dc ca s'etale
+  // sur ~20 rangs. et a mi-rayon on est deja a 6/7 de l'epaisseur dc le
+  // coussin garde son epaule
   const TAN = Math.tanh(2.6)
   const zAt = (d: number) => {
     const t = Math.min(1, Math.max(0, d - 1) / R)
     return (Math.tanh(2.6 * t) / TAN) * depth
   }
 
-  /* Le dernier anneau de pixels doit valoir zéro, et c'est lui qu'il faut
-     désigner, pas une distance : le champ est lissé, si bien qu'aucun pixel du
-     bord ne tombe exactement sur la valeur attendue. Les deux nappes
-     s'arrêtaient donc à quelques centièmes l'une de l'autre — une fente ouverte
-     tout autour du sac. De face on ne la voyait pas ; par la tranche, on voyait
-     le fond au travers, en un trait clair du haut en bas. On épingle ici la
-     couture : tout pixel qui touche le vide est ramené à plat, et les deux
-     nappes s'y rejoignent sur le même sommet. */
+  // le dernier rang de px DOIT etre a z=0 et faut le reperer comme ca, pas
+  // avec un test sur la distance : le champ est lisse dc aucun px du bord
+  // tombe pile sur la bonne valeur
+  // du coup les 2 faces s'arretaient a quelques centiemes l'une de l'autre =
+  // une fente ouverte tout autour. de face on voyait rien mais de profil on
+  // voyait le fond au travers
   const rim = new Uint8Array(W * H)
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -524,9 +509,9 @@ function inflate(field: Field, depth: number): { geometry: THREE.BufferGeometry;
     }
   }
 
-  /* Deux nappes symétriques, avant et arrière. Sur le contour l'épaisseur est
-     nulle : les deux y partagent le même sommet, la coque est donc close et
-     sans arête vive — sans quoi une ligne brillante court le long du bord. */
+  // 2 faces symetriques. sur le contour z=0 dc elles partagent le MEME vertex
+  // (d'ou le back[i] = front[i]) sinon ya une arete vive et une ligne brillante
+  // qui court tout le long du bord
   const front = new Int32Array(W * H).fill(-1)
   const back = new Int32Array(W * H).fill(-1)
   const pos: number[] = []
@@ -542,7 +527,7 @@ function inflate(field: Field, depth: number): { geometry: THREE.BufferGeometry;
       const z = rim[i] ? 0 : zAt(dist[i])
       const u = x / (W - 1)
       const v = 1 - y / (H - 1)
-      // Fermeture du contour : un rien d'ombre là où la matière se pince.
+      // attribut edge : 0 sur le bord, 1 au centre. sert a assombrir le pincement
       const e = Math.min(1, dist[i] / R)
 
       front[i] = n++
@@ -582,28 +567,25 @@ function inflate(field: Field, depth: number): { geometry: THREE.BufferGeometry;
   return { geometry: g, unit: H * scale }
 }
 
-/* --- matière -------------------------------------------------------------- */
+// --- la matiere ---
 
-/**
- * Carte de relief tirée d'un seul carré de matière, prélevé au point le plus
- * profond du sac — là où il n'y a que du poil, de la côte ou du nylon.
- *
- * Surtout pas l'image entière : ses contours se retrouveraient gravés dans la
- * surface et se répéteraient à chaque tuile, comme autant de fausses coutures.
- *
- * Le carré est rendu raccordable sans miroir. Un miroir serait plus simple,
- * mais il plante dans la matière un axe de symétrie : la fourrure s'y répond
- * d'un côté à l'autre et, dès qu'on tourne la pièce, un moirage en chevrons
- * remonte le long de cet axe. On croise donc la matière avec elle-même,
- * décalée d'une demi-tuile, sous des poids périodiques — le raccord est franc
- * aux quatre bords, et il ne reste aucune symétrie pour accrocher l'œil.
- */
+// fabrique la normal map a partir d'UN carre de matiere pris a l'endroit le
+// plus epais du sac (la ya que du tissu, pas de contour)
+//
+// surtout pas l'image entiere : les contours du sac se retrouvent graves dans
+// le relief et se repetent a chaque tuile, on dirait des coutures
+//
+// pour rendre la tuile raccordable j'ai pas fait de miroir : un miroir c'est
+// plus simple mais ca cree un axe de symetrie et des qu'on tourne le sac on
+// voit un moirage en chevrons le long de cet axe
+// dc a la place on melange la tuile avec elle meme decalee d'une demi tuile
+// avec des poids en cos. raccord nickel aux 4 bords et zero symetrie
 function grainNormal(
   img: HTMLImageElement,
   field: Field,
   gain: number,
 ): { relief: THREE.CanvasTexture; albedo: THREE.CanvasTexture; mean: THREE.Vector3 } {
-  // Le disque inscrit le plus large : c'est de la matière pure, sans contour.
+  // le point le plus loin de tout bord = la ou ya que de la matiere
   let deep = 0
   let di = 0
   for (let i = 0; i < field.W * field.H; i++) {
@@ -630,12 +612,12 @@ function grainNormal(
   const inv = 1 / (M * M)
   const mean = [mr * inv, mg * inv, mb * inv]
 
-  /* Le tissage. Sur les bords de la tuile, le poids du carré d'origine tombe
-     à zéro et c'est la copie décalée d'une demi-tuile qui prend tout : de part
-     et d'autre du raccord, on lit alors deux colonnes voisines de la même
-     matière — la tuile se referme sur elle-même sans couture. Au milieu, où
-     l'on croise les quatre copies, on rend au contraste ce que le mélange lui
-     a pris. */
+  // le melange
+  // sur les bords de la tuile le poids de l'original tombe a 0 et c'est la copie
+  // decalee qui prend tout, dc de chaque cote du raccord on lit 2 colonnes
+  // voisines de la meme matiere = ca se raccorde tout seul
+  // la division par norm c'est pour rendre le contraste que le melange bouffe
+  // au milieu (la ou les 4 copies se croisent)
   const cv = document.createElement('canvas')
   cv.width = cv.height = M
   const ctx = cv.getContext('2d', { willReadFrequently: true })!
@@ -662,7 +644,7 @@ function grainNormal(
   }
   ctx.putImageData(woven, 0, 0)
 
-  // La tuile en couleur, telle quelle : c'est elle qui habille le bourrelet.
+  // la tuile en couleur, sert a habiller la tranche
   const albedo = new THREE.CanvasTexture(cv)
   albedo.wrapS = albedo.wrapT = THREE.RepeatWrapping
   albedo.colorSpace = THREE.SRGBColorSpace
@@ -673,8 +655,8 @@ function grainNormal(
     const j = i * 4
     lum[i] = (0.2126 * woven.data[j] + 0.7152 * woven.data[j + 1] + 0.0722 * woven.data[j + 2]) / 255
   }
-  // Passe-haut : la luminance moins sa moyenne locale, en deux passes et en
-  // repliant les bords — la tuile doit rester raccordable jusque dans le relief.
+  // passe haut = luminance - moyenne locale. le % M partout c'est pour que les
+  // bords se replient, sinon le relief se raccorde plus
   const R = 3
   const K = 1 / (2 * R + 1)
   const midp = new Float32Array(M * M)
@@ -720,7 +702,7 @@ function grainNormal(
   bump.wrapS = bump.wrapT = THREE.RepeatWrapping
   bump.anisotropy = 8
 
-  // La moyenne de la tuile : on n'en gardera que la modulation, pas la teinte.
+  // on renvoie la moyenne pour que le shader garde que la variation, pas la couleur
   return {
     relief: bump,
     albedo,
@@ -728,12 +710,11 @@ function grainNormal(
   }
 }
 
-/* --- scène ---------------------------------------------------------------- */
+// --- la scene three.js ---
 
-/**
- * Le fond du studio : un gris de cyclo, plus clair au zénith. Il ne fait pas
- * l'éclairage — il donne l'assise sur laquelle les boîtes à lumière tranchent.
- */
+// le fond du studio : un degrade gris plus clair en haut
+// ca eclaire pas vraiment, ca sert juste de base pour que les boites a lumiere
+// ressortent
 function dome(): THREE.CanvasTexture {
   const cv = document.createElement('canvas')
   cv.width = 4
@@ -770,33 +751,31 @@ export async function mountViewer(
   const grain = grainNormal(img, field, spec.bump)
   const normalMap = grain.relief
   normalMap.repeat.set(spec.grain, spec.grain)
-  /* Pas de la trame projetée, accordé à celui de la face : le grain garde la
-     même taille qu'on regarde le sac de face ou par la tranche. */
+  // l'echelle de la matiere projetee, calee sur celle de la face
+  // comme ca le grain a la meme taille de face et de profil
   const tri = spec.grain / unit
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
   renderer.outputColorSpace = THREE.SRGBColorSpace
-  /* Filtrage anisotrope au maximum : vue de biais, une face du sac s'écrase
-     sur quelques pixels de large. Sans lui, la fourrure s'y met à grouiller. */
+  // aniso a fond : vu de biais la face du sac fait genre 5px de large et sans
+  // ca la fourrure grouille
   const aniso = renderer.capabilities.getMaxAnisotropy()
   map.anisotropy = aniso
   body.anisotropy = aniso
   normalMap.anisotropy = aniso
   grain.albedo.anisotropy = aniso
-  // Aucun mappage tonal : les pixels de la photo doivent ressortir tels quels.
+  // pas de tone mapping, on veut les px de la photo tels quels
   renderer.toneMapping = THREE.NoToneMapping
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 100)
   camera.position.set(0, 0, 8)
 
-  /* Le plateau. Deux boîtes à lumière hautes et étroites, plantées de part et
-     d'autre de la pièce et légèrement en avant : ce sont elles qui tracent sur
-     le sac les deux bandes de lumière verticales d'une nature morte de studio.
-     Au-dessus, une boîte large qui pose le volume ; derrière, un retour qui
-     détache la silhouette du fond ; au sol, un réflecteur qui rouvre le bas.
-     Aucun projecteur ponctuel : tout est en surface, donc aucune ombre dure. */
+  // le studio : une scene a part qui sert QUE a generer l'env map
+  // 2 softbox verticales sur les cotes (c'est elles qui font les 2 bandes de
+  // lumiere), une large en haut, un retour derriere et un reflecteur au sol
+  // que des surfaces, aucune lumiere ponctuelle dc pas d'ombre dure
   const studio = new THREE.Scene()
   const sky = dome()
   studio.background = sky
@@ -810,10 +789,10 @@ export async function mountViewer(
     m.lookAt(0, 0, 0)
     studio.add(m)
   }
-  // Les deux boîtes latérales : la gauche mène, la droite déboîte.
+  // les 2 softbox laterales. la gauche est plus forte
   panel(3.2, 11, 0xfffdf7, 6.4, [-6.6, 0.6, 3.4])
   panel(3.2, 11, 0xf9fbff, 4.8, [6.6, 0.6, 3.4])
-  // Nappe zénithale, retour arrière, réflecteur de sol.
+  // le haut, le retour derriere, le sol
   panel(11, 4.5, 0xfffefb, 3.4, [-0.6, 6.4, 2.2])
   panel(9, 9, 0xffffff, 2.0, [-1.2, 2.2, -7.2])
   panel(9, 3.6, 0xfff7ee, 1.15, [0, -5.2, 3.4])
@@ -822,11 +801,9 @@ export async function mountViewer(
   const envMap = env.fromScene(studio, 0.035).texture
   scene.environment = envMap
 
-  /* La photo porte déjà son éclairage de studio. Le budget lumineux est donc
-     dosé pour valoir exactement 1 sur une face tournée vers l'objectif :
-     de face, le rendu est la photo, au pixel près. C'est en tournant que
-     l'appoint et le contre-jour se mettent à sculpter. La lampe d'ambiance
-     est hémisphérique : le haut du sac reçoit un rien de plus que le bas. */
+  // la photo a deja son eclairage dedans dc la lumiere totale doit faire
+  // exactement 1 sur une face qui regarde la camera -> de face le rendu = la photo
+  // c'est en tournant que les lumieres se mettent a sculpter
   const fill = new THREE.HemisphereLight(0xffffff, 0xe7e2d8, AMBIENT)
   scene.add(fill)
   scene.environmentIntensity = ENV_LIGHT
@@ -842,12 +819,10 @@ export async function mountViewer(
     side: THREE.DoubleSide,
   })
 
-  /* De face, la photo. Sur le bourrelet, elle serait étirée en traînées : on
-     lui substitue la matière — la trame projetée depuis les trois faces du sac,
-     et la couleur du corps prise au même endroit. Projetée ainsi, la trame ne
-     se déforme nulle part et contourne le bord sans se déchirer : elle garde
-     partout la même échelle, et le sac reste d'un seul tenant sur un tour
-     complet. */
+  // le shader custom : de face on met la photo, sur la tranche on met la
+  // matiere en triplanar (projetee depuis les 3 axes) + la couleur du corps
+  // le triplanar ca evite d'etirer la texture sur le bord
+  // facing = a quel point la surface regarde la camera, c'est lui qui melange
   let uniforms: Record<string, THREE.IUniform> | null = null
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uSide = { value: grain.albedo }
@@ -887,7 +862,7 @@ export async function mountViewer(
       /* Deux mesures décident de ce qu'on montre. L'angle de la surface dans le
          sac : au-delà du galbe, la photo n'a plus rien à dire. Et l'angle de
          vue : une face qui fuit vers le fond ne rend plus que des traînées,
-         quand bien même c'est une face. Partout ailleurs, la photo intacte. */
+         qd bien même c'est une face. Partout ailleurs, la photo intacte. */
       .replace(
         '#include <map_fragment>',
         `vec3 nObj = normalize(vObjN);
@@ -907,10 +882,9 @@ export async function mountViewer(
          vec3 shot = diffuseColor.rgb * mix(vec3(1.0), clamp(tile, 0.86, 1.16), uFront);
          diffuseColor.rgb = mix(flank, shot, facing) * (1.0 - uEdgeAO * (1.0 - vEdge));`,
       )
-      /* Le pincement du contour n'est pas une surface : c'est l'arête où les
-         deux nappes se rejoignent. Vue par la tranche, elle prenait la lumière
-         des panneaux et traçait un fil blanc tout le long du sac. On l'y rend
-         mate, sourde et sans relief — comme une couture serrée. */
+      // le contour c'est pas une vraie surface c'est juste la ou les 2 faces
+      // se rejoignent. du coup ca accrochait la lumiere et ca faisait un fil
+      // blanc tout le long. on le force en mat sans relief
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
@@ -922,9 +896,7 @@ export async function mountViewer(
         `#include <metalnessmap_fragment>
          metalnessFactor *= smoothstep(0.02, 0.32, vEdge);`,
       )
-      /* Le relief suit le même partage. Projeté depuis les trois faces du sac,
-         il garde son échelle en contournant le bord — là où la carte à plat
-         n'avait que deux pixels à étirer sur tout un quart de tour. */
+      // meme chose pour la normal map : en triplanar sur la tranche
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
@@ -940,7 +912,7 @@ export async function mountViewer(
         '#include <opaque_fragment>',
         `float halo = pow(1.0 - saturate(dot(normalize(normal), normalize(vViewPosition))), 3.0);
          outgoingLight += uGlow * halo * mix(vec3(1.0), diffuseColor.rgb, 0.65);
-         // Un rien d'ombre sur la couture : la matière s'y pince, elle s'y assourdit.
+         // petite ombre sur le contour la ou la matiere se pince
          outgoingLight *= mix(0.62, 1.0, smoothstep(0.0, 0.16, vEdge));
          #include <opaque_fragment>`,
       )
@@ -957,11 +929,10 @@ export async function mountViewer(
   const norm = 2 / Math.max(span.x, span.y)
   pivot.scale.setScalar(norm)
 
-  /* Encombrement réel sur un tour complet, mesuré axe par axe plutôt qu'en
-     sphère : la pièce ne tourne qu'autour de la verticale, et s'incline à
-     peine. En largeur elle balaie donc sa diagonale, en hauteur elle ne
-     bouge presque pas — la sphère englobante réservait pour rien un tiers
-     du cadre, et le sac flottait au milieu du vide. */
+  // la place que prend le sac sur un tour complet, axe par axe
+  // au debut javais pris la sphere englobante mais le sac tourne que sur l'axe
+  // vertical dc en hauteur il bouge quasi pas : la sphere reservait un tiers du
+  // cadre pour rien et le sac flottait au milieu du vide
   const TILT = 0.3
   const halfW = (Math.hypot(span.x, span.z) / 2) * norm
   const halfH = ((span.y * Math.cos(TILT) + span.z * Math.sin(TILT)) / 2) * norm
@@ -980,9 +951,8 @@ export async function mountViewer(
     draw()
   }
 
-  /* Une seule course pour trois réglages qui vont toujours ensemble : la
-     quantité de lumière, la part de reflet, et l'éclat sur les bords. À
-     mi-course, c'est l'éclairage d'origine — celui qui rend la photo. */
+  // le slider pilote 3 trucs d'un coup : l'ambiante, l'env map et le halo
+  // a 0.5 on retombe sur les valeurs par defaut (= la photo)
   const setLight = (t: number) => {
     const v = Math.min(1, Math.max(0, t))
     const k = 0.55 + 0.9 * v
@@ -999,14 +969,15 @@ export async function mountViewer(
     renderer.setSize(w, h, false)
     camera.aspect = w / h
     const half = Math.tan((camera.fov / 2) * (Math.PI / 180))
-    // Une marge de rien du tout : le sac tient le cadre.
+    // 1.04 = 4% de marge, juste de quoi pas coller aux bords
     camera.position.z = Math.max((halfH * 1.04) / half, (halfW * 1.04) / (half * camera.aspect))
     camera.updateProjectionMatrix()
     draw()
   }
 
   resize()
-  // Première image : les uniformes n'existent qu'une fois le programme compilé.
+  // 1er draw : les uniforms existent qu'une fois le shader compile
+  // dc faut ce render avant setLight sinon il ecrit dans le vide
   draw()
   setLight(opts.light ?? 0.5)
   if (!opts.still) frame()
@@ -1015,7 +986,7 @@ export async function mountViewer(
     backdrop: field.backdrop,
     setLight,
     point: (nx, ny) => {
-      // Tour complet : d'un bord à l'autre de la page, le sac fait ses 360°.
+      // * PI dc d'un bord a l'autre de la page = un tour complet
       target.x = nx * Math.PI
       target.y = ny * 0.3
       if (opts.still) {

@@ -2,42 +2,25 @@ import gsap from 'gsap'
 import { q, qq, reduced } from './dom'
 import { closeOverlay, openOverlay } from './overlay'
 
-/* -------------------------------------------------------------------------
-   Preview 3D — le quartier de l'atelier, vu du ciel
-
-   Une démonstration n'est pas de nous : elle est de Makio64, elle s'appuie
-   sur le rendu de tuiles de Garrett Johnson et sur les données de Cesium.
-   Le panneau le dit avant de montrer quoi que ce soit — c'est la raison
-   d'être de l'écran d'attente, et la raison pour laquelle il tient un temps
-   plancher : des crédits qui passent trop vite ne sont pas des crédits.
-
-   La barre monte donc sur ce temps-là, sans jamais toucher son bout : elle
-   attend que le film soit prêt pour le faire. Le premier des deux qui traîne
-   commande, et l'on ne se retrouve ni devant un écran noir, ni devant des
-   noms illisibles.
-
-   Ensuite le film tourne en boucle, sans contrôleur : ce n'est pas un lecteur
-   qu'on manœuvre, c'est un plan qu'on regarde. Il ne s'arrête qu'à la
-   fermeture — et il s'arrête alors pour de bon, source coupée.
-   ---------------------------------------------------------------------- */
+// la preview 3D du quartier. c'est juste une video en boucle
+// la demo est pas de nous (Makio64 / Garrett Johnson / Cesium) d'ou l'ecran
+// de credits au debut. il a une duree mini sinon on a pas le temps de lire
+// la barre attend les 2 : le temps mini ET la video prete
 
 export const demo = q<HTMLElement>('[data-demo]')!
 
 const FILM = '/LocGoofyBag.mp4'
 const SITE = 'https://cinematic-zoom.vercel.app/'
 
-/** Le temps plancher de l'écran d'attente, en secondes — de quoi lire. */
+// duree mini de l'ecran de chargement. meme si la video est deja la on attend
+// un peu sinon ca flashe
 const HOLD = 7.4
 
-/** Le nom de la démonstration, qui tient le haut de l'écran à lui seul. */
+// le titre affiche pendant le chargement
 const TITLE = 'Cinematic Zoom'
 
-/* Ce qui est dû, et à qui. Le premier mot mène, le nom porte.
-
-   Chaque ligne porte un intitulé, et ce n'est pas un hasard : la grille des
-   crédits compte trois colonnes fixes, et une cellule qu'on masquerait
-   décalerait d'un cran tout ce qui suit. Une ligne sans intitulé n'aurait
-   donc pas sa place ici — c'est un titre, et elle est montée en titre. */
+// les credits. attention la grille css fait 3 colonnes fixes dc chaque ligne
+// doit avoir son lead. si on en laisse un vide tout le reste se decale
 const CREDITS: { lead: string; name: string }[] = [
   { lead: 'Demo by', name: 'Makio64' },
   { lead: '3D-Tiles-Renderer by', name: 'Garrett Johnson' },
@@ -96,9 +79,10 @@ function markup(): string {
     </div>`
 }
 
-/** Ce qui tourne pendant l'attente — à couper net à la fermeture. */
+// les anims du chargement. faut les kill a la fermeture
 let intro: gsap.core.Timeline | null = null
-/** Jeton d'ouverture : un panneau refermé pendant l'attente ne lance rien. */
+// compteur d'ouverture. si on ferme pendant le chargement le vieux token
+// devient obsolete et on lance pas la video
 let token = 0
 
 export function openDemo(): void {
@@ -117,8 +101,8 @@ export function openDemo(): void {
     void film.play().catch(() => {})
   }
 
-  /* Le film est chargé pour de bon : sans cette demande, `preload` reste un
-     vœu et le passage à l'image se ferait sur une vidéo encore vide. */
+  // load() explicite, sinon preload est juste une suggestion et le navigateur
+  // peut rien telecharger du tout
   film.load()
 
   const ready = new Promise<void>((resolve) => {
@@ -126,13 +110,13 @@ export function openDemo(): void {
     const done = () => resolve()
     film.addEventListener('canplaythrough', done, { once: true })
     film.addEventListener('canplay', done, { once: true })
-    // Un réseau qui bute ne doit pas retenir le panneau indéfiniment.
+    // timeout au cas ou le reseau rame, on bloque pas l'user indefiniment
     film.addEventListener('error', done, { once: true })
   })
 
   const held = new Promise<void>((resolve) => {
     if (reduced) {
-      // Sans animation, la barre saute — mais le temps de lecture, lui, reste.
+      // en reduced motion la barre saute direct a 100 mais on garde le delai
       rule.style.transform = 'scaleX(0.92)'
       pct.textContent = '92'
       window.setTimeout(resolve, HOLD * 1000)
@@ -153,7 +137,7 @@ export function openDemo(): void {
         { opacity: 0, y: 14, duration: 0.62, stagger: 0.42, ease: 'power3.out' },
         0.24,
       )
-      /* La barre ne va qu'aux neuf dixièmes : le dernier reste au film. */
+      // on monte que jusqu'a 90%, les 10 derniers % c'est qd la video est prete
       .fromTo(
         rule,
         { scaleX: 0 },
@@ -181,7 +165,7 @@ export function openDemo(): void {
   })
 }
 
-/** La lecture chiffrée suit la barre — une seule source, pas deux horloges. */
+// le % affiche est lu depuis la barre. comme ca pas de desync entre les deux
 function paint(rule: HTMLElement, pct: HTMLElement): void {
   const v = (gsap.getProperty(rule, 'scaleX') as number) ?? 0
   pct.textContent = String(Math.round(v * 100)).padStart(2, '0')
@@ -196,8 +180,7 @@ export function closeDemo(): void {
   token++
   intro?.kill()
   intro = null
-  /* Le film est vidé, pas seulement mis en pause : une vidéo de cette taille
-     laissée en mémoire continuerait de peser sur l'onglet. */
+  // on vide le src au lieu de juste pause() sinon la video reste en memoire
   const film = q<HTMLVideoElement>('[data-demo-film]', demo)
   if (film) {
     film.pause()

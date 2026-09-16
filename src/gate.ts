@@ -1,12 +1,8 @@
 import gsap from 'gsap'
 import { q, reduced } from './dom'
 
-/* -------------------------------------------------------------------------
-   Le seuil — la carte est lue avant que la caisse ne s'ouvre
-
-   Le panneau de la caisse lui passe sa racine et ce qu'il faut faire une fois
-   la carte remise : le seuil n'a pas à connaître la suite.
-   ---------------------------------------------------------------------- */
+// l'ecran de "lecture de la carte" avant le formulaire de paiement
+// pay.ts nous passe sa racine + un callback onDone, on sait pas ce qui vient apres
 
 const GATE_STEPS = [
   'Ouverture du canal',
@@ -22,23 +18,20 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
   const card = q<HTMLElement>('[data-ccard]', pay)
   if (!gate || !slot || !stage || !card) return onDone()
 
-  /* La carte ne quitte jamais sa case dans le formulaire : on la déplace à
-     vue, par un décalage mesuré vers le cadre du seuil. Sa place reste donc
-     tenue en dessous, et le retour n'est qu'un décalage ramené à zéro — pas
-     de saut de mise en page, pas de seconde carte.
-
-     Tout se mesure ici, une fois pour toutes. Lire la géométrie du document
-     pendant que les choses bougent oblige le navigateur à tout recalculer sur
-     le champ, au milieu de l'image en cours : c'était là, et nulle part
-     ailleurs, que le mouvement accrochait. */
+  // la carte reste dans le DOM du form, on la deplace juste avec un translate
+  // du coup sa place est gardee en dessous et pour revenir on remet x/y a 0
+  // pas de saut de layout et pas 2 cartes a synchroniser
+  //
+  // on mesure TOUT ici une bonne fois. si on lit le layout pdt que ca bouge le
+  // navigateur recalcule tout au milieu de la frame = ca saccade
   const stageBox = stage.getBoundingClientRect()
   const home = card.getBoundingClientRect()
   const slotBox = slot.getBoundingClientRect()
   const homeAt = { x: home.left + home.width / 2, y: home.top + home.height / 2 }
   const slotAt = { x: slotBox.left + slotBox.width / 2, y: slotBox.top + slotBox.height / 2 }
 
-  /* La case porte la perspective : le point de fuite doit donc suivre la carte,
-     sans quoi elle se verrait de trois quarts au milieu de l'écran. */
+  // la perspective est sur le parent dc le point de fuite doit suivre la carte
+  // sinon elle est vue de 3/4 qd elle est au milieu de l'ecran
   const eye = { x: slotAt.x - stageBox.left, y: slotAt.y - stageBox.top }
   const aimEye = () => {
     stage.style.perspectiveOrigin = `${eye.x.toFixed(1)}px ${eye.y.toFixed(1)}px`
@@ -53,16 +46,15 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
     scale: slotBox.width / home.width,
   })
 
-  /* Le raccourci est branché plus bas, quand la marche existe ; il est déclaré
-     ici parce que les gestes de la main, eux, sont posés avant. */
+  // defini plus bas (faut la timeline) mais declare ici pcq les listeners
+  // sont poses avant
   let skip = () => {}
 
-  /* Tout le mouvement de la carte tient dans une seule boucle, et une seule
-     écriture par image. C'est la condition de la fluidité : à plusieurs
-     animations concurrentes sur le même objet — la dérive, le survol, la
-     prise en main, la respiration — chacune réécrivait la position de son
-     côté et l'image sautait. Ici la boucle est seule à décider ; les tweens ne
-     touchent qu'à ce qu'elle ne touche pas (l'opacité, le décalage, l'échelle). */
+  // TOUT le mouvement passe par un seul rAF et une seule ecriture par frame
+  // avant javais 4 anims gsap en //  (rotation auto, survol, drag, respiration)
+  // et elles s'ecrasaient entre elles = ca sautait
+  // mtn la boucle est seule a toucher rotation/z/yPercent, les tweens touchent
+  // que le reste (opacity, x, y, scale)
   const yaw = gsap.quickSetter(card, 'rotationY', 'deg')
   const pitch = gsap.quickSetter(card, 'rotationX', 'deg')
   const lift = gsap.quickSetter(card, 'yPercent')
@@ -71,24 +63,24 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
   const glowY = gsap.quickSetter(card, '--my')
 
   const turn = {
-    /** Angle courant et vitesse résiduelle, en degrés. */
+    /** angle actuel + ce qui reste d'elan apres un drag */
     y: -22,
     spin: 0,
-    /** Inclinaison, et sa cible : le survol la vise, la boucle l'y amène. */
+    /** inclinaison. aimX = la cible, la boucle y va en lerp */
     x: -24,
     aimX: 0,
-    /** Décalage de lacet donné par la position du curseur, sans la prise. */
+    /** decalage donne par le survol (hors drag) */
     hover: 0,
     aimHover: 0,
-    /** Avancée de l'entrée, de 0 à 1. */
+    /** progression de l'entree, 0 -> 1 */
     into: reduced ? 1 : 0,
     beat: 0,
-    /** Le point chaud, en pourcentage de la carte. */
+    /** position du reflet en % */
     gx: 50,
     gy: 30,
     aimGx: 50,
     aimGy: 30,
-    /** Pendant un balayage, la lumière ne suit plus la main. */
+    /** pdt un flash le reflet suit plus la souris */
     swept: false,
   }
 
@@ -99,7 +91,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
     frame = requestAnimationFrame(tick)
 
     if (!grabbed) {
-      // Dérive lente, plus ce qui reste de l'élan qu'on lui a donné.
+      // rotation lente en continu + l'elan qui retombe petit a petit
       turn.y += 0.14 + turn.spin
       turn.spin *= 0.94
       turn.hover += (turn.aimHover - turn.hover) * 0.08
@@ -113,7 +105,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
       turn.gy += (turn.aimGy - turn.gy) * 0.12
     }
 
-    // Entrée : elle vient du fond du plateau et se pose, en une seule courbe.
+    // ease out quart fait a la main pour l'entree (elle vient du fond)
     const e = 1 - Math.pow(1 - turn.into, 4)
     yaw(turn.y + turn.hover)
     pitch(turn.x)
@@ -123,7 +115,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
     glowY(`${turn.gy.toFixed(1)}%`)
   }
 
-  /** Un trait de lumière, sans laisser la main le contrarier en chemin. */
+  // le reflet qui traverse. on coupe le suivi souris pdt ce temps la
   const flash = (seconds = 1) => {
     turn.swept = true
     turn.gy = 34
@@ -146,15 +138,14 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
     tick()
     gsap.delayedCall(0.4, () => flash(1.1))
 
-    /* Deux gestes, distincts. La main qui passe incline la carte, la décale un
-       peu et déplace le point de lumière. La main qui l'attrape la fait tourner
-       au doigt, et la lâche avec son élan. */
+    // 2 gestes differents : le survol incline la carte + bouge le reflet,
+    // le drag la fait tourner et la relache avec de l'elan
     let lastX = 0
     let travel = 0
 
     gate.addEventListener('pointerdown', (e) => {
-      // On n'attrape pas la carte depuis une commande : « Annuler » doit rester
-      // cliquable, or capturer le pointeur lui volerait son clic.
+      // si on part d'un bouton on drag pas, sinon le setPointerCapture
+      // bouffe le clic et "annuler" marche plus
       if ((e.target as Element).closest('button, a')) return
       grabbed = true
       travel = 0
@@ -176,7 +167,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
           const dx = e.clientX - lastX
           lastX = e.clientX
           travel += Math.abs(dx)
-          // Un pouce de course pour un tiers de tour : la carte suit la main.
+          // 0.9 deg par px, trouve a l'oeil
           turn.y += dx * 0.9
           turn.spin = dx * 0.34
           return
@@ -192,7 +183,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
       grabbed = false
       gate.classList.remove('is-grab')
       if (gate.hasPointerCapture(e.pointerId)) gate.releasePointerCapture(e.pointerId)
-      // L'élan reste dans `spin` : la boucle le dépense toute seule.
+      // on touche pas a spin, la boucle le fait retomber toute seule
       turn.hover = turn.aimHover
     }
     gate.addEventListener('pointerup', release)
@@ -204,7 +195,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
       turn.aimHover = 0
     })
 
-    // Un clic net accélère la formalité ; un geste de rotation, non.
+    // si on a bouge de moins de 8px c'etait un clic pas un drag -> on accelere
     gate.addEventListener('click', (e) => {
       if ((e.target as Element).closest('[data-close-pay]')) return
       if (travel < 8) skip()
@@ -215,7 +206,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
   const hand = () => {
     if (handed) return
     handed = true
-    // La boucle rend la main : à partir d'ici, la carte n'obéit qu'aux tweens.
+    // on coupe le rAF ici, apres ca c'est gsap qui pilote la carte
     cancelAnimationFrame(frame)
     gsap.killTweensOf(turn)
     const land = () => {
@@ -228,19 +219,14 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
     }
     if (reduced) return land()
 
-    /* Trois temps, dans cet ordre et sans se recouvrir.
-
-       Le vert s'éteint d'abord : le champ de lecture s'efface et l'antenne
-       reprend sa couleur pendant que la carte se redresse. La carte rejoint
-       ensuite sa case — sur le plateau encore noir, donc toute la transition
-       est finie avant que la caisse ne commence à paraître. Le plateau ne se
-       retire qu'en dernier, découvrant un formulaire où la carte est déjà
-       posée : plus rien ne bouge quand il monte. */
+    // 3 temps qui se chevauchent pas :
+    // 1. le vert s'eteint pdt que la carte se redresse
+    // 2. la carte rejoint sa place (le fond est encore noir dc on voit rien derriere)
+    // 3. le fond disparait et le form est deja en place
     const trip = { k: 0 }
     gsap
       .timeline({ onComplete: land })
-      // 1. tout ce qui est vert s'éteint — le cadre et la coche — et la carte
-      //    se met d'aplomb pendant ce temps
+      // 1
       .to(
         [q('.gate__trace', pay), q('.gate__foot', pay)],
         { opacity: 0, duration: 0.3, ease: 'power2.in' },
@@ -248,7 +234,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
       )
       .to(card, { rotationY: 0, rotationX: 0, yPercent: 0, z: 0, duration: 0.42, ease: 'power2.inOut' }, 0)
       .add(() => card.classList.add('is-flying'), 0)
-      // 2. la carte gagne sa place, et le point de fuite avec elle
+      // 2
       .to(card, { x: 0, y: 0, scale: 1, duration: 0.72, ease: 'power3.inOut' }, 0.38)
       .to(
         trip,
@@ -264,7 +250,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
         },
         0.38,
       )
-      // 3. et seulement alors, le plateau se retire
+      // 3
       .to(
         [q('[data-gate-bg]', pay), q('.gate__head', pay), q('.gate__stage', pay)],
         { opacity: 0, duration: 0.46, ease: 'power2.inOut' },
@@ -287,13 +273,11 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
 
   const seal = q<SVGSVGElement>('[data-gate-seal]', pay)
 
-  /* Le dénouement. Le trait qui cerne la carte se referme, tout passe au vert,
-     et le compte cède la place à une coche qui se dessine — la figure d'un
-     paiement accepté, tenue en deux traits. */
+  // la fin : le contour se ferme, tout passe au vert et le compteur laisse
+  // la place a la coche
   const accept = () => {
-    /* Le dénouement se regarde : même si l'on a pressé le pas, la lecture
-       reprend ici sa vitesse normale. C'est le seul moment de la séquence
-       qu'on ne doit pas pouvoir manquer. */
+    // on remet timeScale a 1 meme si l'user avait accelere. c'est le seul
+    // moment qu'il faut pas rater
     gsap.killTweensOf(run)
     run.timeScale(1)
     gate.classList.add('is-ok')
@@ -315,8 +299,7 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
         { strokeDashoffset: 0, duration: 0.32, delay: 0.28, ease: 'power2.out' },
       )
     }
-    /* Le plateau reprend son souffle d'un cran. En opacité seulement : un
-       filtre sur un aplat plein écran ferait repeindre toute la page. */
+    // petit flash. en opacity only, un filter sur un plein ecran repeint tout
     gsap.fromTo(
       q('[data-gate-flash]', pay),
       { opacity: 0 },
@@ -337,8 +320,8 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
         duration: READ,
         ease: 'power1.inOut',
         onUpdate: () => {
-          // Le texte n'est réécrit qu'au changement d'entier : sinon c'est une
-          // remise en page par image, pour un chiffre qui n'a pas bougé.
+          // on ecrit que si l'entier change sinon c'est un reflow par frame
+          // pour un chiffre qui a pas bouge
           const n = Math.round(march.v)
           if (n !== ticked) {
             ticked = n
@@ -348,8 +331,8 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
           if (step.textContent !== GATE_STEPS[i]) {
             step.textContent = GATE_STEPS[i]
             gsap.fromTo(step, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35 })
-            /* Une lumière à deux paliers seulement, et courte : à chacun des
-               quatre, les balayages se chevauchaient et la carte clignotait. */
+            // flash que sur 2 etapes sur 4. avec les 4 ils se chevauchaient
+            // et la carte clignotait
             if (i === 1 || i === 2) flash(0.55)
           }
         },
@@ -357,12 +340,11 @@ export function runGate(pay: HTMLElement, onDone: () => void): void {
       0,
     )
     .add(accept)
-    /* La coche met six dixièmes à se dessiner ; on la laisse ensuite exister
-       une bonne seconde de plus. Trop courte, la pose et l'on ne voyait plus
-       le vert du tout — c'est pourtant la seule récompense de l'attente. */
+    // 1.7s : 0.6 pour dessiner la coche + ~1s pour la laisser affichee
+    // en dessous on voit meme pas le vert passer
     .to({}, { duration: 1.7 })
 
-  // Un clic net presse le pas — sans rien couper, tout se joue plus vite.
+  // on coupe rien, on accelere juste la timeline
   skip = () => {
     if (run.timeScale() < 4) gsap.to(run, { timeScale: 4.5, duration: 0.3, ease: 'power2.in' })
   }

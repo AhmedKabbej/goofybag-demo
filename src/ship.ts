@@ -2,21 +2,13 @@ import gsap from 'gsap'
 import { q, qq, reduced } from './dom'
 import type { Page } from './page'
 
-/* -------------------------------------------------------------------------
-   Livraison & retours — la route, en cinq arrêts
-
-   Un relevé plutôt qu'une page d'aide : la route est tracée à la cote, le
-   camion la parcourt vraiment, et ce qui est derrière lui est encré tandis
-   que ce qui reste à faire demeure pointillé. On peut le laisser rouler seul
-   ou l'envoyer à un arrêt d'un clic — dans les deux cas, il y va, il ne s'y
-   téléporte pas : c'est ce trajet qui dit la durée mieux qu'un chiffre.
-
-   Le dessin suit le même système que la paillasse de l'atelier — plein pour
-   la matière, pointillé pour ce qui guide, disque plein pour un point relevé.
-   ---------------------------------------------------------------------- */
+// page livraison : un camion qui roule sur une route avec 5 arrets
+// il roule tout seul en boucle mais on peut cliquer un arret pour l'y envoyer
+// (il y va vraiment, pas de teleportation)
+// meme systeme de classes svg que lab.ts : .k plein / .d pointille / .p ronds
 
 type Stop = {
-  /** Position sur la route, de 0 à 1. */
+  /** ou sur la route, de 0 a 1 */
   at: number
   day: string
   title: string
@@ -124,14 +116,13 @@ const FAQ: [string, string][] = [
   ],
 ]
 
-/* --- le décor, en traits ------------------------------------------------- */
+// --- les dessins svg ---
 
 const ROAD_Y = 190
 
-/** Le camion, dessiné pare-chocs à l'origine, la caisse derrière lui, roues
-    posées sur zéro. La hauteur est portée par le groupe intérieur : le groupe
-    extérieur ne sert qu'au déplacement, et GSAP y écrit sa matrice sans avoir
-    à retenir où était la chaussée. */
+// le camion. dessine avec le pare choc a x=0 et les roues a y=0
+// ya 2 <g> imbriques : celui de dehors sert QUE pour le deplacement gsap,
+// celui de dedans porte la hauteur. sinon gsap ecrase le translate de la route
 const TRUCK = `
   <g data-truck>
    <g transform="translate(0 ${ROAD_Y})">
@@ -156,7 +147,7 @@ const TRUCK = `
    </g>
   </g>`
 
-/** Le colis déposé, ruban compris — il n'apparaît qu'au dernier arrêt. */
+// le colis. opacity 0 au depart, il apparait qu'au dernier arret
 const PARCEL = `
   <g data-parcel transform="translate(${(STOPS[4].at * 1000 + 46).toFixed(0)} ${ROAD_Y})" opacity="0">
     <path class="k" d="M-17 -32h34v32h-34z" pathLength="100" />
@@ -298,7 +289,7 @@ function markup(): string {
     </section>`
 }
 
-/* --- la conduite ---------------------------------------------------------- */
+// --- la conduite ---
 
 const WHEEL_R = 14
 const DWELL = 3.6
@@ -307,7 +298,7 @@ let root: HTMLElement | null = null
 let run: gsap.core.Timeline | null = null
 let index = 0
 
-/** Envoie le camion à l'arrêt demandé, puis laisse la suite venir seule. */
+// envoie le camion a l'arret i. a la fin ca rappelle drive(i+1) dc ca boucle
 function drive(i: number, instant = false): void {
   if (!root) return
   index = (i + STOPS.length) % STOPS.length
@@ -320,9 +311,8 @@ function drive(i: number, instant = false): void {
   const wheels = qq<SVGGElement>('[data-wheel]', root)
   const speed = q<SVGGElement>('[data-speed]', root)!
 
-  /* Sous 760 px la scène déborde et se fait glisser : elle doit alors suivre
-     le camion d'elle-même, faute de quoi il roule hors du cadre et l'on ne
-     voit plus que la route. */
+  // en dessous de 760px la scene deborde et on peut la scroller a la main
+  // dc faut scroller tout seul pour suivre le camion sinon il sort du cadre
   const frame = q<HTMLElement>('.ship__frame', root)!
   const over = frame.scrollWidth - frame.clientWidth
   if (over > 0) {
@@ -352,22 +342,22 @@ function drive(i: number, instant = false): void {
 
   const from = Number(gsap.getProperty(truck, 'x')) || 0
   const span = target - from
-  // La distance parcourue règle tout : la durée du trajet, et le nombre de
-  // tours que font les roues. Une roue qui patine trahit le décor.
+  // la duree ET la rotation des roues dependent de la distance
+  // (sinon les roues patinent et ca se voit direct)
   const travel = Math.min(2.2, Math.max(0.5, Math.abs(span) / 420))
   const turns = (span / (2 * Math.PI * WHEEL_R)) * 360
 
   run = gsap
     .timeline({ onComplete: () => drive(index + 1) })
     .to(truck, { x: target, duration: travel, ease: 'power2.inOut' }, 0)
-    /* Le centre est dit en toutes lettres : sans lui, GSAP prend le coin de la
-       boîte du groupe et la roue part se poser à côté du camion. */
+    // bien mettre transformOrigin sinon gsap prend le coin de la bbox et la
+    // roue part tourner a cote du camion
     .to(
       wheels,
       { rotation: `+=${turns}`, transformOrigin: '50% 50%', duration: travel, ease: 'power2.inOut' },
       0,
     )
-    // Un tressaut de suspension, deux fois pendant le trajet, jamais à l'arrêt.
+    // petit rebond de suspension pdt le trajet. rien a l'arret
     .to(truck, { y: -2, duration: travel / 4, ease: 'sine.inOut', yoyo: true, repeat: 3 }, 0)
     .set(truck, { y: 0 }, travel)
     .to(speed, { opacity: span > 0 ? 1 : 0.35, duration: 0.25 }, 0)
@@ -383,7 +373,7 @@ function drive(i: number, instant = false): void {
     .to({}, { duration: DWELL })
 }
 
-/** Change de destination : les quatre lignes se relèvent l'une après l'autre. */
+// change de zone de livraison, les 4 lignes se remontent en decale
 function pickZone(key: string): void {
   if (!root) return
   const zone = ZONES.find((z) => z.key === key) ?? ZONES[0]
@@ -422,8 +412,8 @@ export const ship: Page = {
     )
     pickZone(ZONES[0].key)
     drive(0, true)
-    // Le camion attend d'être vu : lancer la boucle sous le rideau ferait
-    // arriver le colis avant que la page ne soit là.
+    // on attend un peu avant de lancer la boucle sinon le camion roule pdt que
+    // le rideau est encore la et le colis arrive avant qu'on voie la page
     gsap.delayedCall(0.9, () => root && drive(1))
   },
   unmount() {

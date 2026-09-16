@@ -3,19 +3,9 @@ import { euro, q, qq, reduced } from './dom'
 import { linePrice, products } from './products'
 import { lenis } from './scroll'
 
-/* -------------------------------------------------------------------------
-   L'ouverture — ce qu'on voit avant tout le reste
-
-   Une pièce, en grand, sur le papier. Le nom de la maison passe derrière elle,
-   assez pâle pour ne pas lui disputer la place et assez large pour sortir du
-   cadre : c'est un fond, pas un titre. Les cinq se relaient toutes les quatre
-   secondes ; en bas, la pièce se nomme et se chiffre.
-
-   Les visuels sont des copies légères — trois cents kilo-octets pour les cinq,
-   contre huit méga-octets pour les originaux. Seul le premier part avec la
-   page ; les autres ne sont demandés qu'une fois celle-ci affichée, pour ne
-   pas retarder ce que l'on regarde en premier.
-   ---------------------------------------------------------------------- */
+// le hero : les 5 sacs qui defilent toutes les 4s
+// les images sont compressees (300ko les 5 au lieu de 8Mo) et seule la 1ere
+// est chargee avec la page, les autres arrivent apres en idle
 
 const VISUELS = ['bag1', 'bag2', 'bag3', 'bag4', 'bag5']
 const TOUR = 4
@@ -32,8 +22,8 @@ function paint(i: number): void {
   q<HTMLElement>('[data-opening-name]')!.textContent = p.name
   q<HTMLElement>('[data-opening-colour]')!.textContent = c.name
   q<HTMLElement>('[data-opening-price]')!.textContent = euro.format(linePrice(p, p.sizes[0].name))
-  // La scène porte la pièce courante : l'ouverture d'une fiche passe par le
-  // même chemin qu'une carte de la grille, sans un aiguillage de plus.
+  // on met le slug sur la scene comme sur une carte de la grille
+  // du coup le clic ouvre la fiche sans code en plus
   stage!.dataset.slug = p.slug
   stage!.dataset.colourName = c.name
   qq<HTMLElement>('[data-opening-rail] span').forEach((el, k) =>
@@ -79,7 +69,7 @@ export function startOpening(): void {
 
   paint(0)
 
-  // Les quatre autres visuels, une fois la page posée.
+  // on charge les 4 autres images une fois que la page est affichee
   const suite = () =>
     qq<HTMLImageElement>('img[data-src]', stage).forEach((img) => {
       img.src = img.dataset.src!
@@ -88,8 +78,8 @@ export function startOpening(): void {
   if ('requestIdleCallback' in window) requestIdleCallback(suite, { timeout: 2500 })
   else setTimeout(suite, 1200)
 
-  /* Le relais ne tourne que sous les yeux : sorti de l'écran, il s'arrête —
-     rien ne sert d'animer ce que personne ne regarde. */
+  // le carrousel tourne que si le hero est visible. sinon on kill
+  // (ca sert a rien d'animer qd l'user est plus bas dans la page)
   const relais = () => {
     cycle?.kill()
     cycle = gsap.delayedCall(TOUR, () => {
@@ -115,8 +105,8 @@ export function startOpening(): void {
     lenis.scrollTo(opening.offsetHeight, { duration: 1.1 }),
   )
 
-  /* La pièce dérive avec la main, d'un cheveu. C'est ce qui la décolle du
-     papier — sans cela, l'image reste une image. */
+  // le sac suit un peu la souris. quickTo et pas gsap.to sinon on cree un tween
+  // a chaque pointermove et ca rame
   if (reduced) return
   const drift = { x: gsap.quickTo(stage, 'x', { duration: 1.1, ease: 'power3' }),
                   y: gsap.quickTo(stage, 'y', { duration: 1.1, ease: 'power3' }) }

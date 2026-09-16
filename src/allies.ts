@@ -3,21 +3,11 @@ import { q, qq, reduced } from './dom'
 import { bindForm, formMarkup, type FormSpec } from './form'
 import type { Page } from './page'
 
-/* -------------------------------------------------------------------------
-   Partenariats — la collection présentée à Cannes
+// page partenariats : le texte, les etapes, un compte a rebours et le formulaire
+// le compte a rebours tourne avec un setInterval qu'il faut clear au unmount
 
-   Une maison de cinq pièces ne fait pas une collection de festival toute
-   seule : chaque printemps, nous en dessinons une avec une marque, et elle
-   monte les marches. Cette page est le dépôt de dossier — ce que nous
-   cherchons, comment cela se déroule, et le temps qu'il reste.
-
-   Ce temps est la seule chose animée : un compte à rebours au dixième près
-   n'aurait aucun sens, mais la seconde qui tombe, si — elle dit qu'une date
-   est une date, et que les dossiers ferment vraiment.
-   ---------------------------------------------------------------------- */
-
-/** Clôture des dépôts. Le fuseau est écrit en clair : sans lui, la date
-    glisse d'un visiteur à l'autre et le rebours ne veut plus rien dire. */
+// date limite. je mets le fuseau en dur sinon la date change selon le fuseau
+// du visiteur et tout le monde voit pas la meme chose
 const DEADLINE = new Date('2027-01-15T23:59:59+01:00').getTime()
 
 const STAGES: [string, string, string][] = [
@@ -163,7 +153,7 @@ function markup(): string {
 let root: HTMLElement | null = null
 let beat: ReturnType<typeof setInterval> | undefined
 
-/** Une seconde de moins. Les chiffres ne changent que s'ils changent. */
+// appele toutes les secondes. on touche au DOM que si le chiffre a bouge
 function tick(): void {
   if (!root) return
   const left = Math.max(0, DEADLINE - Date.now())
@@ -181,8 +171,7 @@ function tick(): void {
     const next = String(value[k]).padStart(k === 'j' ? 3 : 2, '0')
     if (el.textContent === next) return
     el.textContent = next
-    // Un pouls sur le chiffre qui tombe, pas sur les quatre : c'est ce qui
-    // fait qu'on voit la seconde passer sans que la ligne entière clignote.
+    // on anime que le chiffre qui change sinon les 4 clignotent en meme temps
     if (!reduced) gsap.fromTo(el, { opacity: 0.3, y: -4 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' })
   })
 }

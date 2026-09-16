@@ -2,18 +2,9 @@ import gsap from 'gsap'
 import { q, qq, reduced } from './dom'
 import type { Page } from './page'
 
-/* -------------------------------------------------------------------------
-   Entretien — le geste avant la consigne
-
-   Les maisons expliquent l'entretien par une liste ; nous le faisons faire.
-   La première chose de la page est un sac empoussiéré sur lequel on passe la
-   main : la matière revient sous le doigt, et le compteur monte. On a compris
-   le geste — un chiffon sec, sans appuyer — avant d'avoir lu une ligne.
-
-   Vient ensuite ce qui ne s'éprouve pas : les trois matières de la maison et
-   ce qu'elles demandent, les symboles de la sous-doublure, et la réparation à
-   vie, qui est la vraie réponse à l'usure.
-   ---------------------------------------------------------------------- */
+// page entretien
+// le gros morceau c'est le canvas en haut : un sac plein de poussiere qu'on
+// nettoie a la souris. le reste c'est du contenu statique (matieres, symboles)
 
 type Matter = {
   key: string
@@ -83,7 +74,7 @@ const MATTERS: Matter[] = [
   },
 ]
 
-/** Les cinq symboles de la sous-doublure, redessinés au même trait. */
+// les symboles d'entretien refaits en svg
 const SIGNS: [string, string][] = [
   [
     'Ne pas laver',
@@ -135,9 +126,9 @@ const FOLDS: [string, string][] = [
   ],
 ]
 
-/* --- le chiffon ----------------------------------------------------------- */
+// --- le canvas a nettoyer ---
 
-/** Finesse de la grille qui sert à mesurer ce qui a été nettoyé. */
+// grille 34x24 pour savoir ou on a deja nettoye. BRUSH = rayon du pinceau en px
 const CELLS_X = 34
 const CELLS_Y = 24
 const BRUSH = 46
@@ -148,7 +139,7 @@ let ctx: CanvasRenderingContext2D | null = null
 let done = false
 let detach: (() => void)[] = []
 
-/** Repose le voile de poussière, et remet le compteur à zéro. */
+// redessine la poussiere et remet le compteur a 0. appele au resize aussi
 function dust(): void {
   const canvas = q<HTMLCanvasElement>('[data-dust]', root ?? document)
   if (!canvas) return
@@ -164,8 +155,8 @@ function dust(): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.globalCompositeOperation = 'source-over'
 
-  // Le voile : un aplat de papier presque opaque, puis du grain par-dessus —
-  // sans le grain, on nettoie une vitre, pas une matière.
+  // d'abord un aplat puis 900 petits ronds par dessus pour le grain
+  // sans le grain on dirait qu'on nettoie une vitre
   ctx.fillStyle = 'rgba(232, 231, 227, 0.94)'
   ctx.fillRect(0, 0, box.width, box.height)
   ctx.fillStyle = 'rgba(120, 118, 110, 0.16)'
@@ -188,7 +179,7 @@ function setPercent(n: number): void {
   if (el) el.textContent = `${n} %`
 }
 
-/** Efface sous le doigt, puis relève ce qui reste couvert. */
+// efface autour du curseur et recalcule le %
 function wipe(canvas: HTMLCanvasElement, e: PointerEvent): void {
   if (!ctx || done) return
   const box = canvas.getBoundingClientRect()
@@ -204,8 +195,8 @@ function wipe(canvas: HTMLCanvasElement, e: PointerEvent): void {
   ctx.arc(x, y, BRUSH, 0, Math.PI * 2)
   ctx.fill()
 
-  /* On ne relit pas les pixels pour compter : une grille grossière suffit à
-     dire « c'est propre », et elle ne coûte rien à chaque mouvement. */
+  // on relit PAS les pixels du canvas pour compter (getImageData a chaque move
+  // = injouable) on coche juste les cases de la grille
   const cw = box.width / CELLS_X
   const ch = box.height / CELLS_Y
   const r = BRUSH * 0.6
@@ -221,8 +212,8 @@ function wipe(canvas: HTMLCanvasElement, e: PointerEvent): void {
   const pct = Math.round((n / cleaned.length) * 100)
   setPercent(pct)
 
-  // Au-delà de 88 %, on considère le sac propre : poursuivre les derniers
-  // coins ne dit plus rien et transforme le geste en corvée.
+  // a 88% on considere que c'est fini. aller chercher les derniers coins
+  // c'est relou pour rien
   if (pct < 88) return
   done = true
   setPercent(100)
@@ -232,7 +223,7 @@ function wipe(canvas: HTMLCanvasElement, e: PointerEvent): void {
   else canvas.style.opacity = '0'
 }
 
-/* --- assemblage ----------------------------------------------------------- */
+// --- le markup ---
 
 function markup(): string {
   return `
@@ -332,7 +323,7 @@ function markup(): string {
     </section>`
 }
 
-/** Change de matière : la planche se retrace, les règles se relèvent. */
+// change de matiere : on redessine le svg et on remonte les regles
 function pickMatter(key: string): void {
   if (!root) return
   const m = MATTERS.find((x) => x.key === key) ?? MATTERS[0]
@@ -371,8 +362,8 @@ export const care: Page = {
 
     const canvas = q<HTMLCanvasElement>('[data-dust]', host)!
     const move = (e: PointerEvent) => wipe(canvas, e)
-    /* Au doigt, il faut poser puis glisser ; à la souris, le survol suffit —
-       demander un clic pour un geste qui n'en est pas un le rendrait muet. */
+    // a la souris le survol suffit, au doigt faut appuyer
+    // dc on teste pressure/buttons que pour le tactile
     const touchMove = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') e.preventDefault()
       if (e.pointerType === 'mouse' || e.pressure > 0 || e.buttons) wipe(canvas, e)
@@ -389,7 +380,8 @@ export const care: Page = {
       () => window.removeEventListener('resize', reset),
     ]
 
-    // Le voile ne peut être posé qu'une fois l'image mesurée par la mise en page.
+    // double rAF : faut attendre que le layout soit fait sinon getBoundingClientRect
+    // renvoie 0 et le canvas est vide
     requestAnimationFrame(() => requestAnimationFrame(dust))
   },
   unmount() {

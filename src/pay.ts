@@ -6,23 +6,14 @@ import { closeOverlay, openOverlay } from './overlay'
 import { cardLength, digitsOf, groupDigits, kindOf, maskedNumber, NEUTRAL } from './card'
 import { runGate } from './gate'
 
-/* -------------------------------------------------------------------------
-   Paiement — une carte que l'on remplit à vue
-
-   Rien n'est envoyé nulle part : le formulaire ne sort pas de la page, et la
-   carte affichée n'est qu'un reflet de ce qui est saisi. C'est une
-   démonstration, elle le dit en toutes lettres au-dessus du premier champ.
-
-   Le geste : ce que l'on tape se pose sur la carte, chiffre par chiffre. Le
-   réseau se devine dès les premiers chiffres et la carte change de teinte.
-   Le cryptogramme est au dos, donc la carte se retourne quand on va le
-   chercher. Elle suit le curseur, et la lumière glisse dessus.
-   ---------------------------------------------------------------------- */
+// le checkout avec la carte 3D qui se remplit en meme temps qu'on tape
+// rien n'est envoye nulle part, c'est une demo (c'est ecrit au dessus du form)
+// le reseau (visa/mc/amex) est devine avec les 1ers chiffres -> voir card.ts
+// la carte se retourne qd on va dans le champ cryptogramme
 
 export const pay = q<HTMLElement>('[data-pay]')!
 
-/** Ce qu'un réseau impose : longueur, découpe, taille du cryptogramme. */
-/** Un trait de lumière qui traverse la carte, de gauche à droite. */
+// le reflet qui traverse la carte
 function sweep(card: HTMLElement, seconds = 1.1): void {
   if (reduced) return
   gsap.fromTo(
@@ -224,12 +215,9 @@ function payMarkup(total: number): string {
     </div>`
 }
 
-/* Le seuil. Avant le formulaire, la carte occupe l'écran : on peut la faire
-   tourner du doigt pendant que la ligne se remplit. Quand elle est pleine,
-   l'aplat d'encre se retire et la carte s'en va prendre sa place en haut du
-   formulaire — c'est le même objet du début à la fin, jamais deux images. */
-
-/** Le formulaire vit tant que la fenêtre est ouverte ; il est reconstruit à chaque fois. */
+// avant le form ya un ecran de chargement ou la carte est en grand (gate.ts)
+// c'est le MEME element qui se deplace ensuite en haut du form, pas 2 cartes
+// le form est reconstruit a chaque ouverture
 export function openPay(): void {
   const total = payTotal()
   if (total <= 0) return
@@ -277,14 +265,12 @@ function wirePay(): void {
   let shown: string[] = []
   let busy = false
 
-  /* Une carte en règle vire au vert. Pas un vert de feu tricolore — une teinte
-     sourde, à peine décalée du bleu nuit : de quoi savoir que c'est bon sans
-     que l'objet change de nature. */
+  // qd tout est ok la carte passe au vert. un vert sombre pas un vert fluo
   const OK_TINT = '#16291d'
   const tint = () => card.style.setProperty('--card-tint', card.classList.contains('is-ok') ? OK_TINT : kind.tint)
 
-  /* Les chiffres se posent un par un : on ne réécrit que ceux qui changent,
-     sinon toute la ligne sauterait à chaque frappe. */
+  // un span par chiffre et on remplace QUE ceux qui changent
+  // si on refait tout l'innerHTML a chaque frappe la ligne entiere re-anime
   const paintNumber = (text: string) => {
     const chars = [...text]
     if (numOut.childElementCount !== chars.length) {
@@ -346,7 +332,7 @@ function wirePay(): void {
     paint()
   })
 
-  // L'expiration se ponctue toute seule ; le mois se corrige à la volée.
+  // la date se formate toute seule : le / s'ajoute et le mois est clampe a 12
   exp.addEventListener('input', () => {
     let d = digitsOf(exp.value).slice(0, 4)
     if (d.length === 1 && Number(d) > 1) d = `0${d}`
@@ -358,9 +344,8 @@ function wirePay(): void {
     paint()
   })
 
-  /* La carte suit le curseur — une inclinaison, et la lumière qui glisse avec.
-     Deux amorces réutilisées d'un mouvement à l'autre plutôt qu'un tween créé
-     à chaque déplacement de la main : la course reste continue, sans à-coup. */
+  // la carte s'incline avec la souris
+  // quickTo (cree 1 seule fois) et pas gsap.to a chaque move sinon ca saccade
   const turnY = reduced ? null : gsap.quickTo(card, 'rotationY', { duration: 0.6, ease: 'power3' })
   const turnX = reduced ? null : gsap.quickTo(card, 'rotationX', { duration: 0.6, ease: 'power3' })
   let tilt = 0
@@ -371,10 +356,9 @@ function wirePay(): void {
     else gsap.set(card, { rotationY: flipped ? 180 : 0 })
   }
 
-  /* Le cryptogramme est au dos : la carte s'y retourne, et revient après. Le
-     demi-tour est commandé ici et pas par une classe — la boucle de survol
-     écrit l'angle en ligne, une règle de feuille de style n'y pourrait rien,
-     et la carte ne se retournerait qu'au premier mouvement de souris. */
+  // le flip est fait en js et pas avec une classe css
+  // pcq le survol ecrit deja rotationY en inline dc le css passerait jamais
+  // (resultat la carte se retournait qu'au 1er mouvement de souris)
   const face = (back: boolean) => {
     if (busy) return
     flipped = back && !kind.frontCode
@@ -385,9 +369,8 @@ function wirePay(): void {
   cvc.addEventListener('blur', () => face(false))
 
   if (!reduced) {
-    /* La case est relevée quand la main y entre, et à chaque changement de
-       fenêtre — jamais à chaque geste : mesurer pendant que la carte bouge
-       force le navigateur à tout recalculer au milieu de l'image. */
+    // on mesure au pointerenter et au resize, surtout pas a chaque move
+    // (getBoundingClientRect pdt une anim = reflow a chaque frame)
     let box = stage.getBoundingClientRect()
     const remeasure = () => { box = stage.getBoundingClientRect() }
     stage.addEventListener('pointerenter', remeasure)
@@ -415,8 +398,7 @@ function wirePay(): void {
     })
   }
 
-  /* Les exemples tournent : un clic de plus donne le réseau suivant, avec sa
-     découpe et sa teinte. De quoi voir la carte changer sans rien taper. */
+  // cartes de test. a chaque clic on passe a la suivante pour voir les 3 reseaux
   const SAMPLES = [
     { num: '4242 4242 4242 4242', name: 'Camille Dubreuil', exp: '04/29', cvc: '123' },
     { num: '5555 5555 5555 4444', name: 'Inès Fabre', exp: '11/28', cvc: '456' },
@@ -435,13 +417,12 @@ function wirePay(): void {
     clearErrors()
   })
 
-  /** Le relevé des manques, sans rien afficher : il sert aussi à la teinte. */
+  // liste les erreurs sans rien afficher. sert aussi pour la couleur de la carte
   const faults = (): [string, string][] => {
     const out: [string, string][] = []
     const digits = digitsOf(num.value)
-    /* On ne vérifie que la longueur. La clé de Luhn refuserait un numéro
-       inventé — or c'est précisément ce qu'on tape dans une maquette : n'importe
-       quels chiffres doivent passer, et la carte doit les prendre. */
+    // on check que la longueur, pas Luhn
+    // c'est une demo dc faut que n'importe quels chiffres passent
     if (digits.length !== cardLength(kind)) out.push(['num', `Il faut ${cardLength(kind)} chiffres.`])
     if (name.value.trim().length < 2) out.push(['name', 'Indiquez le nom porté sur la carte.'])
     const [mm, yy] = exp.value.split('/')
@@ -471,7 +452,7 @@ function wirePay(): void {
     qq<HTMLElement>('[data-err]', pay).forEach((e) => (e.textContent = ''))
   }
 
-  /** Les mêmes contrôles qu'un vrai tunnel — sauf qu'ici ils ne gardent rien. */
+  // affiche les erreurs et dit si on peut valider
   const check = (): boolean => {
     clearErrors()
     const bad = faults()
@@ -479,8 +460,7 @@ function wirePay(): void {
     return bad.length === 0
   }
 
-  /* L'autorisation : la carte se remet de face, une lumière la traverse, et le
-     bouton se remplit le temps que ça dure. Puis le reçu prend la place. */
+  // le faux paiement : reflet sur la carte + le bouton qui se remplit, puis le recu
   const settle = () => {
     const done = q<HTMLElement>('[data-pay-done]', pay)!
     const body = q<HTMLElement>('.pay__body', pay)!
@@ -510,8 +490,7 @@ function wirePay(): void {
   form.addEventListener('submit', (e) => {
     e.preventDefault()
     if (busy || !check()) return
-    // La carte se remet de face avant qu'on ne verrouille : passé ce point,
-    // plus rien ne doit la faire tourner.
+    // on remet la carte de face AVANT busy=true, apres ca plus rien la bouge
     face(false)
     busy = true
     const label = q<HTMLElement>('[data-pay-label]', pay)!

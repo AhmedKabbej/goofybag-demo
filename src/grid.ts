@@ -2,9 +2,8 @@ import { euro, q, qq } from './dom'
 import { defaultColour, find, products, type Product } from './products'
 import { observeReveals } from './reveal'
 
-/* -------------------------------------------------------------------------
-   Grille produits — la carte montre la déclinaison suivante au survol
-   ---------------------------------------------------------------------- */
+// la grille de produits. au survol la carte montre la couleur suivante
+// (2 img superposees, le css fait le fondu)
 
 function cardMarkup(p: Product): string {
   const c = defaultColour(p)
@@ -45,7 +44,7 @@ export function renderGrid(): void {
   observeReveals()
 }
 
-/** Change la déclinaison affichée sur une carte, sans ouvrir la fiche. */
+// change la couleur affichee sur une carte sans ouvrir la fiche produit
 export function setCardColour(card: HTMLElement, name: string): void {
   const p = find(card.dataset.slug)
   if (!p) return

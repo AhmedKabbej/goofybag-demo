@@ -1,31 +1,23 @@
 import gsap from 'gsap'
 import { q, qq, reduced } from './dom'
 
-/* -------------------------------------------------------------------------
-   Formulaires — un pli, un cachet
-
-   Deux pages en demandent un : la correspondance et les dépôts de projet.
-   Ils ne diffèrent que par leurs champs, jamais par leur comportement — on
-   décrit donc les champs, et le reste est commun : le même filet sous chaque
-   ligne, la même vérification au moment d'envoyer, et la même réponse.
-
-   Cette réponse est le seul moment où le site s'autorise une image : la
-   lettre se ferme et reçoit son cachet. Rien n'est envoyé nulle part — c'est
-   une démonstration, et le pied du formulaire le dit.
-   ---------------------------------------------------------------------- */
+// formulaire generique reutilise par la page contact et la page partenaires
+// on decrit juste les champs dans un FormSpec et le reste (markup, validation,
+// ecran de confirmation) est commun
+// rien n'est envoye nulle part c'est une demo
 
 export type Field = {
   name: string
   cap: string
   type?: 'text' | 'email' | 'url'
   placeholder?: string
-  /** Un champ facultatif n'est jamais refusé, même vide. */
+  /** pas obligatoire */
   optional?: boolean
-  /** Zone de texte plutôt que ligne simple. */
+  /** textarea au lieu d'un input */
   area?: boolean
-  /** Choix mutuellement exclusifs, posés en pastilles. */
+  /** liste de choix en boutons. un seul a la fois */
   chips?: string[]
-  /** Deux champs côte à côte sur une même ligne. */
+  /** demi largeur pour en mettre 2 sur la meme ligne */
   half?: boolean
 }
 
@@ -70,12 +62,12 @@ function fieldMarkup(f: Field): string {
 export type FormSpec = {
   fields: Field[]
   submit: string
-  /** La mention légale sous le bouton. */
+  /** le petit texte sous le bouton */
   fine: string
   done: { title: string; line: string; again: string }
 }
 
-/** La lettre qui se ferme : le rabat se trace, le cachet vient dessus. */
+// l'enveloppe affichee apres envoi. animee dans seal() plus bas
 const SEAL = `
   <svg class="art seal" viewBox="0 0 180 130" aria-hidden="true">
     <rect class="k" x="14" y="26" width="152" height="88" pathLength="100" />
@@ -110,7 +102,7 @@ export function formMarkup(spec: FormSpec): string {
 
 const MAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i
 
-/** Ce qui cloche dans un champ, ou rien du tout. */
+// renvoie le message d'erreur ou '' si c'est bon
 function fault(f: Field, value: string): string {
   const v = value.trim()
   if (!v) return f.optional ? '' : 'Ce champ est requis.'
@@ -125,8 +117,8 @@ export function bindForm(root: HTMLElement, spec: FormSpec): void {
   const form = q<HTMLFormElement>('form', wrap)!
   const done = q<HTMLElement>('[data-form-done]', wrap)!
 
-  /* Pastilles : une seule tenue à la fois, et c'est le champ caché qui porte
-     la valeur — le formulaire se lit ainsi d'un seul `FormData`. */
+  // les chips : une seule active a la fois. la valeur est recopiee dans un input
+  // hidden comme ca on recupere tout d'un coup avec FormData
   qq<HTMLElement>('[data-chip]', wrap).forEach((chip) => {
     chip.addEventListener('click', () => {
       const group = chip.parentElement!
@@ -145,8 +137,7 @@ export function bindForm(root: HTMLElement, spec: FormSpec): void {
     if (count) count.textContent = `${counter.value.length} / 900`
   })
 
-  /* L'erreur s'efface dès la première correction : la garder affichée pendant
-     qu'on répare le champ revient à gronder quelqu'un qui obéit déjà. */
+  // des que l'user retape dans un champ en erreur on enleve le message
   form.addEventListener('input', (e) => {
     const cell = (e.target as HTMLElement).closest<HTMLElement>('.field')
     if (!cell?.classList.contains('is-bad')) return
@@ -187,14 +178,14 @@ export function bindForm(root: HTMLElement, spec: FormSpec): void {
   })
 }
 
-/** Le rabat se replie, le cachet tombe, le texte se relève. */
+// l'anim de l'enveloppe qui se ferme
 function seal(done: HTMLElement): void {
   const bloc = qq<HTMLElement>('.form__done-title, .form__done-line, .form__again', done)
   if (reduced) return
 
   const flap = q<SVGElement>('.seal__flap', done)!
   const stamp = q<SVGElement>('.seal__stamp', done)!
-  // L'enveloppe d'abord, le rabat ensuite : on ne plie pas ce qui n'est pas là.
+  // on sort le rabat et le tampon du reste pour les animer apres l'enveloppe
   const shell = qq<SVGElement>('.seal .k, .seal .d', done).filter(
     (el) => el !== flap && !stamp.contains(el),
   )

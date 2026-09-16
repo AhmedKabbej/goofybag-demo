@@ -2,24 +2,15 @@ import gsap from 'gsap'
 import { q, reduced } from './dom'
 import { lenis } from './scroll'
 
-/* -------------------------------------------------------------------------
-   Panneaux — menu, fiche, panier, aperçu, caisse
-
-   Tous se comportent pareil : ils couvrent la page, ils arrêtent le
-   défilement derrière eux, et ils le rendent quand le dernier se referme.
-   C'est ce « dernier » qui compte : on tient donc la liste de ceux qui sont
-   ouverts plutôt que d'énumérer quelque part tous ceux qui existent — sans
-   quoi il faut penser à compléter cette énumération à chaque nouveau panneau,
-   et le jour où on l'oublie, la page reste bloquée.
-   ---------------------------------------------------------------------- */
+// gere tous les panneaux (menu, fiche produit, panier, checkout...)
+// ils bloquent tous le scroll derriere. on garde un Set des panneaux ouverts
+// plutot qu'un booleen pcq sinon qd on en ferme un alors qu'un autre
+// est encore ouvert le scroll revient trop tot
 
 const open = new Set<HTMLElement>()
 
-/**
- * Ouvre un panneau. `fade` est à écarter pour tout panneau qui porte déjà son
- * entrée en CSS : le fondu relèverait son opacité au moment où l'animation de
- * feuille de style la tient encore à zéro, et la laisserait invisible.
- */
+// fade=false si le panneau a deja son anim d'entree en CSS
+// sinon gsap et le css se battent sur l'opacity et ca reste invisible
 export function openOverlay(el: HTMLElement, fade = true): void {
   el.hidden = false
   open.add(el)
@@ -38,25 +29,14 @@ export function closeOverlay(el: HTMLElement): void {
 
 export const isOpen = (el: HTMLElement) => open.has(el)
 
-/* -------------------------------------------------------------------------
-   Transition entre vues — un aplat balaie l'écran, la vue change derrière
-   ---------------------------------------------------------------------- */
+// le rideau qui balaie l'ecran qd on change de vue
 
 const curtain = q<HTMLElement>('[data-curtain]')!
 
-/* Le changement de vue a lieu au milieu du balayage, pendant que l'aplat
-   couvre l'écran — soit une demi-seconde après le geste. Tout ce qui arrive
-   dans cet intervalle doit donc être retenu, pas ignoré :
-
-   — un deuxième clic ne relance pas un second balayage par-dessus le premier,
-     il remplace simplement ce qui sera montré au milieu ;
-   — une échappée pendant l'ouverture n'est plus avalée : le panneau n'est pas
-     encore ouvert, la fermeture ne trouvait rien à fermer et le clic partait
-     dans le vide — la voici retenue au même titre, et c'est la grille qui
-     revient.
-
-   Ce qui arrive après le milieu, en revanche, est une navigation neuve : elle
-   attend la fin et joue son propre balayage. */
+// le swap se fait au milieu du balayage dc ~0.5s apres le clic
+// pendant ces 0.5s si on reclique on remplace juste le pending au lieu de
+// relancer un 2e rideau par dessus. ca gere aussi le cas ou on fait echap
+// pendant l'ouverture (avant ca le clic partait dans le vide)
 let pending: (() => void) | null = null
 let sweeping = false
 

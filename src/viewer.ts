@@ -3,31 +3,30 @@ import { q, reduced } from './dom'
 import { colourOf, sizeOf, type Selection } from './products'
 import { closeOverlay, openOverlay } from './overlay'
 
-/* -------------------------------------------------------------------------
-   Aperçu 3D — la pièce est reconstruite, la souris la fait tourner
-   ---------------------------------------------------------------------- */
+// la vue 3D du sac. la souris le fait tourner
+// tout le three.js est dans viewer3d.ts, ici c'est que l'UI autour
 
 export const viewer = q<HTMLElement>('[data-viewer]')!
 
 let scene: import('./viewer3d').ViewerHandle | null = null
-/** Jeton d'ouverture : une fiche fermée pendant le chargement n'affiche rien. */
+// token pcq le chargement est async : si on ferme avant la fin faut pas
+// afficher la scene qui arrive apres
 let sceneToken = 0
 
-/* La visée courante, dans les unités de `point` : l'abscisse fait le tour,
-   l'ordonnée incline. On la tient ici parce que les deux gestes ne la
-   fabriquent pas de la même façon — la souris l'écrit d'un coup, le doigt y
-   ajoute sa course — et qu'il faut bien un endroit où l'un reprenne l'autre. */
+// ou on vise. x = rotation, y = inclinaison. les 2 vont de -1 a 1
+// on le garde ici pcq souris et doigt le calculent pas pareil (la souris ecrase
+// la valeur, le doigt ajoute a partir de la derniere) dc faut un endroit commun
 const aim = { x: 0, y: 0 }
 
 function aimAt(x: number, y: number): void {
   aim.x = x
-  // Le tour est libre ; l'inclinaison, elle, se retient à ses butées.
+  // on clamp que le y. le x peut tourner a l'infini
   aim.y = Math.min(1, Math.max(-1, y))
   scene?.point(aim.x, aim.y)
 }
 
-/* La sélection lui est passée : l'aperçu n'a pas à savoir qu'une fiche produit
-   existe, ni à aller y lire quoi que ce soit. */
+// on passe la selection en param plutot que d'aller la chercher dans product.ts
+// comme ca le viewer depend pas de la fiche
 export async function openViewer(sel: Selection): Promise<void> {
   const { p, colour, size } = sel
   const c = colourOf(p, colour)
@@ -89,12 +88,12 @@ export async function openViewer(sel: Selection): Promise<void> {
     })
     if (token !== sceneToken) return dropScene()
     q<HTMLElement>('[data-viewer-wait]', viewer)?.remove()
-    // La découpe se pose sur le même fond que la prise de vue.
+    // on reprend la couleur de fond de la photo pour que ca se voie pas
     q<HTMLElement>('[data-viewer-stage]', viewer)?.style.setProperty('background', scene.backdrop)
     canvas.classList.add('is-ready')
     wireLume()
   } catch {
-    // Sans WebGL — ou si la matière n'a pas pu être lue — on montre la photo.
+    // pas de webgl ou texture ko = on affiche juste la photo
     if (token !== sceneToken) return
     const stage = q<HTMLElement>('[data-viewer-stage]', viewer)
     if (stage) stage.innerHTML = `<img class="viewer__still" src="${c.image}" alt="${p.name} — ${c.name}" />`
@@ -106,11 +105,9 @@ function dropScene(): void {
   scene = null
 }
 
-/* --- réglage de lumière ------------------------------------------------------
-   Une seule course, à monter ou descendre : elle porte ensemble la lumière,
-   la part de reflet et l'éclat des bords. Le réglage suit d'une pièce à
-   l'autre — on ne le refait pas à chaque ouverture.
-   ------------------------------------------------------------------------ */
+// --- le slider de lumiere ---
+// un seul slider qui pilote la lumiere + les reflets + le contour
+// la valeur est en dehors de openViewer dc elle est gardee entre 2 ouvertures
 
 let lightLevel = 0.5
 let lightDrag = false
@@ -133,7 +130,7 @@ function setLight(v: number): void {
   paintLume()
 }
 
-/** Branche la course une fois la scène montée : avant, elle ne pilote rien. */
+// a appeler QUE qd la scene est prete, sinon le slider pilote rien
 function wireLume(): void {
   const lume = q<HTMLElement>('[data-lume]', viewer)
   const track = q<HTMLElement>('[data-lume-track]', viewer)
@@ -141,7 +138,7 @@ function wireLume(): void {
   lume.hidden = false
   paintLume()
 
-  // Le haut de la course vaut 1, le bas 0 : on fait monter la lumière.
+  // le 1- pcq en css le y part du haut mais nous on veut 1 en haut
   const from = (clientY: number) => {
     const r = track.getBoundingClientRect()
     setLight(1 - (clientY - r.top) / (r.height || 1))
@@ -187,24 +184,20 @@ function wireLume(): void {
   })
 }
 
-/* L'abscisse du curseur balaie la rotation, l'ordonnée l'incline un peu.
-
-   À la souris seulement : au doigt, un `pointermove` ne se produit qu'en
-   cours de geste, et le sac sauterait à l'endroit touché dès le premier
-   contact — un pouce posé au bord ferait faire un demi-tour à la pièce avant
-   d'avoir bougé d'un pixel. La rotation au doigt est relative, plus bas. */
+// souris uniquement
+// au doigt on peut pas faire ca : le pointermove arrive qu'une fois qu'on touche
+// dc le sac ferait un demi tour d'un coup des qu'on pose le pouce sur le bord
+// pour le tactile c'est en relatif, voir plus bas
 window.addEventListener('pointermove', (e) => {
   if (e.pointerType !== 'mouse') return
   if (viewer.hidden || !scene || lightDrag) return
   aimAt((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1)
 })
 
-/* --- rotation au doigt ----------------------------------------------------
-   Le geste est relatif : on retient la visée qu'avait le sac au moment où le
-   doigt s'est posé, et l'on y ajoute la course parcourue depuis. La largeur
-   du cadre vaut un tour complet, sa hauteur toute l'inclinaison — la même
-   échelle qu'à la souris, ramenée du format de la page à celui du cadre.
-   ------------------------------------------------------------------------ */
+// --- rotation au doigt ---
+// en relatif : on memorise la visee au pointerdown et on ajoute le delta
+// la largeur du cadre = un tour complet (meme ratio qu'a la souris mais
+// ramene a la taille du cadre au lieu de la page)
 
 let turnId: number | null = null
 const grip = { x: 0, y: 0, aimX: 0, aimY: 0 }
@@ -214,7 +207,7 @@ function wireTurn(): void {
   if (!stage) return
 
   stage.addEventListener('pointerdown', (e) => {
-    // La souris a déjà la page entière ; la course de lumière a la sienne.
+    // la souris est deja geree au dessus, et on touche pas si on est sur le slider
     if (e.pointerType === 'mouse') return
     if ((e.target as Element).closest('[data-lume]')) return
     turnId = e.pointerId
@@ -247,7 +240,7 @@ function wireTurn(): void {
 
 window.addEventListener('resize', () => scene?.resize())
 
-/** Ferme l'aperçu et libère la scène : rien ne tourne en arrière-plan. */
+// faut bien dispose() sinon le canvas continue de tourner en fond
 export function closeViewer(): void {
   sceneToken++
   lightDrag = false

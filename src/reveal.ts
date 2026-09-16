@@ -1,6 +1,7 @@
 import { qq } from './dom'
 
-/* Ce qui entre dans l'écran monte d'un cran, une fois et pas deux. */
+// les elements .reveal montent qd ils arrivent a l'ecran
+// unobserve derriere sinon ca se rejoue a chaque scroll
 
 const io = new IntersectionObserver(
   (entries) => {

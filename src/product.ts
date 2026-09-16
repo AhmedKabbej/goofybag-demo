@@ -11,9 +11,8 @@ import {
 } from './products'
 import { closeOverlay, openOverlay, transition } from './overlay'
 
-/* -------------------------------------------------------------------------
-   Fiche produit — couleur et taille pilotent le visuel et le prix
-   ---------------------------------------------------------------------- */
+// la fiche produit. la couleur change l'image et la taille change le prix
+// tout passe par syncPdp() on refait jamais le html sauf changement de modele
 
 export const pdp = q<HTMLElement>('[data-pdp]')!
 
@@ -118,7 +117,7 @@ function pdpMarkup({ p, colour, size }: Selection): string {
 
 const PDP_BLOCKS = '.pdp__top, .pdp__head, .pdp__options, .pdp__folds, .pdp__buy'
 
-/** Arrivée du contenu de la fiche : les blocs montent, le visuel se dézoome. */
+// l'entree de la fiche : les blocs montent en decale et l'image dezoome
 function animatePdpIn(delay = 0.1): void {
   if (reduced) return
   gsap.from(qq(PDP_BLOCKS, pdp), {
@@ -133,24 +132,21 @@ function animatePdpIn(delay = 0.1): void {
 }
 
 export function openProduct(p: Product, colour = defaultColour(p).name): void {
-  /* La sélection est prise tout de suite, et non au milieu du balayage : c'est
-     elle qui dit qu'un article est engagé. Sans cela, une échappée pendant
-     l'ouverture ne trouvait rien à fermer — la fiche s'ouvrait quand même, et
-     restait ouverte. */
+  // on set current TOUT DE SUITE et pas dans le callback du rideau
+  // sinon si on fait echap pendant l'ouverture y'a rien a fermer et la fiche
+  // s'ouvre qd meme apres coup
   current = { p, colour, size: p.sizes[0].name }
   transition(() => {
     if (!current) return
     pdp.innerHTML = pdpMarkup(current)
-    /* Sans fondu : la fiche paraît derrière le rideau, qui se charge déjà de
-       la découvrir, et ses blocs ont leur propre entrée. Un fondu de plus la
-       laissait à demi transparente le temps que le rideau se lève — et deux
-       ouvertures coup sur coup pouvaient l'y laisser pour de bon. */
+    // pas de fade ici, le rideau fait deja le boulot et les blocs ont leur
+    // propre anim. avec le fade en plus ca restait a moitie transparent
     openOverlay(pdp, false)
     animatePdpIn()
   })
 }
 
-/** Passe à un autre modèle sans quitter la fiche : le contenu se relaie. */
+// change de modele sans fermer la fiche
 function showModel(p: Product): void {
   if (!current || p === current.p) return
   const swap = () => {
@@ -172,14 +168,14 @@ function showModel(p: Product): void {
   })
 }
 
-/** Modèle voisin, en bouclant d'un bout à l'autre de la collection. */
+// modele suivant / precedent. ca boucle
 export function stepModel(step: number): void {
   if (!current) return
   const i = products.indexOf(current.p)
   showModel(products[(i + step + products.length) % products.length])
 }
 
-/** Met à jour visuel, prix et états pressés sans reconstruire la fiche. */
+// remet a jour l'image le prix et les boutons actifs. pas de re-render
 export function syncPdp(): void {
   if (!current) return
   const { p, colour, size } = current
@@ -208,14 +204,14 @@ export function syncPdp(): void {
     el.setAttribute('aria-pressed', String(el.dataset.pickSize === size)),
   )
 
-  // Le viseur annonce ce qu'il survole : le modèle, et les cotes de la taille.
+  // le label du curseur custom, faut le remettre a jour aussi
   q<HTMLElement>('[data-pdp-media]', pdp)?.setAttribute(
     'data-cursor-label',
     `${p.name} · ${sizeOf(p, size).dims}`,
   )
 }
 
-/** La sélection en cours, pour qui en a besoin — l'aperçu, le panier. */
+// utilise par le viewer 3D et le panier
 export const selection = (): Selection | null => current
 
 export function setColour(name: string): void {
@@ -230,7 +226,7 @@ export function setSize(name: string): void {
   syncPdp()
 }
 
-/** Fermer la fiche, c'est aussi oublier ce qu'on y regardait. */
+// bien remettre current a null (voir openProduct)
 export function closeProduct(): void {
   current = null
   closeOverlay(pdp)

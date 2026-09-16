@@ -1,18 +1,18 @@
 import type { BagShape } from './viewer3d'
 
 export type Colour = { name: string; hex: string; image: string }
-/** Chaque taille porte ses propres cotes et son supplément sur le prix de base (S). */
+/** delta = ce qu'on ajoute au prix de base (le prix de base c'est la taille S) */
 export type Size = { name: string; dims: string; delta: number }
 
 export type Product = {
   slug: string
   name: string
-  /** Silhouette reconstruite par l'aperçu 3D. */
+  /** sert a construire le sac dans la vue 3D */
   shape: BagShape
-  /** Prix de la taille S. Les autres tailles ajoutent leur `delta`. */
+  /** prix taille S. pour les autres voir linePrice() */
   price: number
   tag?: string
-  /** Déclinaisons. La première est celle du visuel par défaut. */
+  /** la 1ere couleur est celle affichee par defaut */
   colours: Colour[]
   sizes: Size[]
   description: string
@@ -143,18 +143,15 @@ export const products: Product[] = [
   },
 ]
 
-/** Ce qu'on regarde ou ce qu'on achète : un modèle, une teinte, une taille. */
+/** ce qui est selectionne a un instant T */
 export type Selection = { p: Product; colour: string; size: string }
 
-/* --- lecture du catalogue ---------------------------------------------------
-   Ces quelques fonctions ne font que traverser les données ci-dessus. Elles
-   vivent donc ici, avec elles, et non dans le module qui les affiche.
-   ---------------------------------------------------------------------- */
+// --- petits helpers pour taper dans le catalogue ---
 
 export const find = (slug: string | undefined): Product | undefined =>
   products.find((p) => p.slug === slug)
 
-/** Déclinaison par défaut : la première de la liste. */
+// la couleur par defaut = la premiere
 export const defaultColour = (p: Product) => p.colours[0]
 
 export const colourOf = (p: Product, name: string) =>
@@ -163,5 +160,5 @@ export const colourOf = (p: Product, name: string) =>
 export const sizeOf = (p: Product, name: string) =>
   p.sizes.find((s) => s.name === name) ?? p.sizes[0]
 
-/** Le prix d'une ligne : celui de la taille S, plus le supplément de la taille. */
+// prix final = prix de base + le delta de la taille
 export const linePrice = (p: Product, size: string) => p.price + sizeOf(p, size).delta
